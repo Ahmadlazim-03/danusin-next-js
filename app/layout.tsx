@@ -6,7 +6,6 @@ import "./globals.css"
 import Header from "@/components/header"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
-
 import Footer  from "@/components/footer"
 // import FooterClientConditional from "@/components/footer-client-conditional"
 
@@ -52,6 +51,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
         <Footer />
+        <Toaster />
         </AuthProvider>
 
         {/* Vendor JS Scripts */}
