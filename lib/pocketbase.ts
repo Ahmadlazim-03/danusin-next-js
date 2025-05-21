@@ -1,7 +1,21 @@
 import PocketBase from "pocketbase"
 
 // Create a single PocketBase instance
-export const pb = new PocketBase("https://pocketbase.evoptech.com")
+export const pb = new PocketBase(process.env.POCKETBASE_URL || "https://pocketbase.evoptech.com")
+
+// Admin authentication function
+export const authenticateAdmin = async () => {
+  if (!pb.authStore.isValid) {
+    try {
+      await pb.admins.authWithPassword(
+        process.env.POCKETBASE_EMAIL || "kajuki27@gmail.com",
+        process.env.POCKETBASE_PASSWORD || "EvopTech1sH3re",
+      )
+    } catch (error) {
+      console.error("Admin authentication error:", error)
+    }
+  }
+}
 
 // Helper function to check if user is authenticated
 export const isAuthenticated = () => {

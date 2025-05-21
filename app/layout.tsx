@@ -4,6 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { MainNav } from "@/components/main-nav"
+import { Footer } from "@/components/footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,7 +25,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <MainNav />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
           <Toaster />
         </AuthProvider>
       </body>

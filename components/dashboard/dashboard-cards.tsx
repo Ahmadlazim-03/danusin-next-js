@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, LayoutGrid, Package, Users } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
 
@@ -72,77 +71,42 @@ export function DashboardCards() {
     fetchStats()
   }, [user, isDanuser])
 
-  if (loading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                <div className="h-4 bg-muted rounded w-24"></div>
-              </CardTitle>
-              <div className="h-8 w-8 bg-muted rounded-full"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-7 bg-muted rounded w-12 mb-1"></div>
-              <div className="h-4 bg-muted rounded w-32"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
+  const statCards = [
+    {
+      title: "Organizations",
+      value: stats.organizations,
+      description: "Organizations you manage",
+    },
+    {
+      title: "Catalogs",
+      value: stats.catalogs,
+      description: "Catalogs you've created",
+    },
+    {
+      title: "Products",
+      value: stats.products,
+      description: "Products you've added",
+    },
+    {
+      title: "Members",
+      value: stats.members,
+      description: "Total members across all organizations",
+    },
+  ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Organizations</CardTitle>
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.organizations}</div>
-          <p className="text-xs text-muted-foreground">
-            {isDanuser ? "Organizations you manage" : "Organizations you're a member of"}
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Catalogs</CardTitle>
-          <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.catalogs}</div>
-          <p className="text-xs text-muted-foreground">
-            {isDanuser ? "Catalogs you've created" : "Catalogs you have access to"}
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Products</CardTitle>
-          <Package className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.products}</div>
-          <p className="text-xs text-muted-foreground">
-            {isDanuser ? "Products you've added" : "Products available to you"}
-          </p>
-        </CardContent>
-      </Card>
-      {isDanuser && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.members}</div>
-            <p className="text-xs text-muted-foreground">Total members across all organizations</p>
+    <div className="grid grid-cols-4 gap-4">
+      {statCards.map((card, index) => (
+        <Card key={index} className="border-green-100 bg-white">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <h3 className="mb-1 text-sm font-medium">{card.title}</h3>
+              <p className="mb-1 text-4xl font-bold">{card.value}</p>
+              <p className="text-xs text-muted-foreground">{card.description}</p>
+            </div>
           </CardContent>
         </Card>
-      )}
+      ))}
     </div>
   )
 }

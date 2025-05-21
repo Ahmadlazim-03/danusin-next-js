@@ -14,12 +14,12 @@ export default function DashboardPage() {
         <DashboardCards />
       </Suspense>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Suspense fallback={<div className="h-96 bg-white rounded-lg animate-pulse" />}>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-white" />}>
           <OrganizationsList />
         </Suspense>
 
-        <Suspense fallback={<div className="h-96 bg-white rounded-lg animate-pulse" />}>
+        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-white" />}>
           <CatalogsList />
         </Suspense>
       </div>
