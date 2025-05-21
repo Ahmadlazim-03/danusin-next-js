@@ -18,60 +18,33 @@ type Product = {
   description: string
   price: number
   image: string
-  organization: string
   catalog: string
-  organization_name?: string
   catalog_name?: string
-}
-
-type UserRole = {
-  organization: string
-  role: "admin" | "moderator" | "member"
+  added_by: string
 }
 
 export default function ProductsPage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
-  const [userRoles, setUserRoles] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchProducts() {
       if (!user) return
 
       try {
-        // Get user roles for organizations
-        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
-          filter: `user="${user.id}"`,
-        })
-
-        // Create a map of organization IDs to roles
-        const roles = userOrgsResult.items.reduce((acc: Record<string, string>, item: any) => {
-          if (item.organization && item.role) {
-            acc[item.organization] = item.role
-          }
-          return acc
-        }, {})
-
-        setUserRoles(roles)
-
-        // Get organizations the user is a member of
-        const orgIds = userOrgsResult.items.map((item: any) => item.organization).filter(Boolean)
-
-        if (orgIds.length === 0) {
-          setProducts([])
-          setLoading(false)
-          return
-        }
-
-        // Get products for these organizations
+        // Get products added by the user
         const productsResult = await pb.collection("danusin_product").getList(1, 50, {
-          filter: orgIds.map((id) => `organization="${id}"`).join(" || "),
-          expand: "organization,catalog",
+          filter: `added_by="${user.id}"`,
+          expand: "catalog",
         })
 
-        // Process products to include organization and catalog names
+        if (!isMounted) return
+
+        // Process products to include catalog names
         const processedProducts = productsResult.items.map((product: any) => {
           // Get image URL if available
           let imageUrl = ""
@@ -82,20 +55,29 @@ export default function ProductsPage() {
           return {
             ...product,
             image: imageUrl,
-            organization_name: product.expand?.organization?.organization_name || "Unknown Organization",
             catalog_name: product.expand?.catalog?.name || "Unknown Catalog",
           }
         })
 
         setProducts(processedProducts as unknown as Product[])
-      } catch (error) {
-        console.error("Error fetching products:", error)
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching products:", error)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchProducts()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [user])
 
   // Filter products based on search query
@@ -104,13 +86,12 @@ export default function ProductsPage() {
         (product) =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.organization_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.catalog_name?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : products
 
-  // Check if user can add products (is admin or moderator of at least one organization)
-  const canAddProducts = Object.values(userRoles).some((role) => role === "admin" || role === "moderator")
+  // Check if user can add products (is a danuser)
+  const canAddProducts = user?.isdanuser
 
   return (
     <div className="space-y-8">
@@ -198,18 +179,15 @@ export default function ProductsPage() {
                 </div>
                 <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{product.organization_name}</Badge>
                   <Badge variant="outline">{product.catalog_name}</Badge>
                 </div>
                 <div className="mt-4 flex gap-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
                     <Link href={`/dashboard/products/${product.id}`}>View</Link>
                   </Button>
-                  {(userRoles[product.organization] === "admin" || userRoles[product.organization] === "moderator") && (
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link href={`/dashboard/products/${product.id}/edit`}>Edit</Link>
-                    </Button>
-                  )}
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href={`/dashboard/products/${product.id}/edit`}>Edit</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

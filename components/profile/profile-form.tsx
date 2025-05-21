@@ -13,6 +13,9 @@ import { pb } from "@/lib/pocketbase"
 import { Camera, Loader2, User } from "lucide-react"
 import { useRef, useState } from "react"
 
+// Use the correct collection name
+const USERS_COLLECTION = "danusin_users"
+
 type ProfileFormProps = {
   user: any
 }
@@ -63,7 +66,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       formData.append("avatar", file)
 
       // Update the user record with the new avatar
-      const updatedUser = await pb.collection("danusin_users").update(user.id, formData)
+      const updatedUser = await pb.collection(USERS_COLLECTION).update(user.id, formData)
 
       // Update the avatar URL in the state
       if (updatedUser.avatar) {
@@ -93,7 +96,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     try {
       // Update user profile
-      await pb.collection("danusin_users").update(user.id, {
+      await pb.collection(USERS_COLLECTION).update(user.id, {
         name,
         bio,
         location_text: location,

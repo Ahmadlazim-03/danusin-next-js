@@ -7,79 +7,29 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { pb } from "@/lib/pocketbase"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-
-type Organization = {
-  id: string
-  organization_name: string
-}
+import { useState } from "react"
 
 export default function NewCatalogPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [isLoadingOrgs, setIsLoadingOrgs] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    organization: "",
   })
-
-  useEffect(() => {
-    async function fetchOrganizations() {
-      if (!user) return
-
-      try {
-        // Get organizations where the user is an admin or moderator
-        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
-          filter: `user="${user.id}" && (role="admin" || role="moderator")`,
-          expand: "organization",
-        })
-
-        const orgs = userOrgsResult.items
-          .map((item: any) => ({
-            id: item.expand?.organization?.id,
-            organization_name: item.expand?.organization?.organization_name,
-          }))
-          .filter((org: any) => org.id && org.organization_name)
-
-        setOrganizations(orgs)
-      } catch (error) {
-        console.error("Error fetching organizations:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load your organizations",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingOrgs(false)
-      }
-    }
-
-    fetchOrganizations()
-  }, [user, toast])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [id]: value,
-    }))
-  }
-
-  const handleOrganizationChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      organization: value,
     }))
   }
 
@@ -104,15 +54,6 @@ export default function NewCatalogPage() {
       return
     }
 
-    if (!formData.organization) {
-      toast({
-        title: "Validation error",
-        description: "Please select an organization",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -120,7 +61,6 @@ export default function NewCatalogPage() {
       const catalog = await pb.collection("danusin_catalog").create({
         name: formData.name,
         description: formData.description,
-        organization: formData.organization,
         created_by: user.id,
       })
 
@@ -158,34 +98,6 @@ export default function NewCatalogPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="organization">Organization</Label>
-              {isLoadingOrgs ? (
-                <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
-              ) : organizations.length > 0 ? (
-                <Select value={formData.organization} onValueChange={handleOrganizationChange} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.organization_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="rounded-md border border-dashed p-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    You need to be an admin or moderator of an organization to create catalogs.
-                  </p>
-                  <Button asChild variant="link" className="mt-2 text-green-600">
-                    <Link href="/dashboard/organizations/new">Create an organization</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="name">Catalog Name</Label>
               <Input
                 id="name"
@@ -210,11 +122,7 @@ export default function NewCatalogPage() {
             <Button variant="outline" asChild>
               <Link href="/dashboard/catalogs">Cancel</Link>
             </Button>
-            <Button
-              type="submit"
-              className="bg-green-600 hover:bg-green-700"
-              disabled={isSubmitting || organizations.length === 0}
-            >
+            <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

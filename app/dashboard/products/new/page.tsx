@@ -24,7 +24,6 @@ type Organization = {
 type Catalog = {
   id: string
   name: string
-  organization: string
 }
 
 export default function NewProductPage() {
@@ -34,7 +33,6 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [catalogs, setCatalogs] = useState<Catalog[]>([])
-  const [filteredCatalogs, setFilteredCatalogs] = useState<Catalog[]>([])
   const [isLoadingOrgs, setIsLoadingOrgs] = useState(true)
   const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(false)
   const [productImage, setProductImage] = useState<File | null>(null)
@@ -43,11 +41,12 @@ export default function NewProductPage() {
     name: "",
     description: "",
     price: 0,
-    organization: "",
     catalog: "",
   })
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchOrganizations() {
       if (!user) return
 
@@ -57,6 +56,8 @@ export default function NewProductPage() {
           filter: `user="${user.id}" && (role="admin" || role="moderator")`,
           expand: "organization",
         })
+
+        if (!isMounted) return
 
         const orgs = userOrgsResult.items
           .map((item: any) => ({
@@ -68,13 +69,17 @@ export default function NewProductPage() {
         setOrganizations(orgs)
       } catch (error) {
         console.error("Error fetching organizations:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load your organizations",
-          variant: "destructive",
-        })
+        if (isMounted) {
+          toast({
+            title: "Error",
+            description: "Failed to load your organizations",
+            variant: "destructive",
+          })
+        }
       } finally {
-        setIsLoadingOrgs(false)
+        if (isMounted) {
+          setIsLoadingOrgs(false)
+        }
       }
     }
 
@@ -83,48 +88,36 @@ export default function NewProductPage() {
 
       try {
         setIsLoadingCatalogs(true)
-        // Get all catalogs for organizations where the user is an admin or moderator
-        const catalogsResult = await pb.collection("danusin_catalog").getList(1, 100)
+        // Get catalogs created by the user
+        const catalogsResult = await pb.collection("danusin_catalog").getList(1, 100, {
+          filter: `created_by="${user.id}"`,
+        })
+
+        if (!isMounted) return
+
         setCatalogs(catalogsResult.items as unknown as Catalog[])
       } catch (error) {
         console.error("Error fetching catalogs:", error)
       } finally {
-        setIsLoadingCatalogs(false)
+        if (isMounted) {
+          setIsLoadingCatalogs(false)
+        }
       }
     }
 
     fetchOrganizations()
     fetchCatalogs()
-  }, [user, toast])
 
-  // Filter catalogs when organization changes
-  useEffect(() => {
-    if (formData.organization) {
-      const filtered = catalogs.filter((catalog) => catalog.organization === formData.organization)
-      setFilteredCatalogs(filtered)
-
-      // Reset catalog selection if the selected catalog doesn't belong to the selected organization
-      if (formData.catalog && !filtered.some((c) => c.id === formData.catalog)) {
-        setFormData((prev) => ({ ...prev, catalog: "" }))
-      }
-    } else {
-      setFilteredCatalogs([])
-      setFormData((prev) => ({ ...prev, catalog: "" }))
+    return () => {
+      isMounted = false
     }
-  }, [formData.organization, catalogs, formData.catalog])
+  }, [user, toast])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [id]: id === "price" ? Number.parseFloat(value) || 0 : value,
-    }))
-  }
-
-  const handleOrganizationChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      organization: value,
     }))
   }
 
@@ -190,15 +183,6 @@ export default function NewProductPage() {
       return
     }
 
-    if (!formData.organization) {
-      toast({
-        title: "Validation error",
-        description: "Please select an organization",
-        variant: "destructive",
-      })
-      return
-    }
-
     if (!formData.catalog) {
       toast({
         title: "Validation error",
@@ -215,7 +199,6 @@ export default function NewProductPage() {
       productData.append("name", formData.name)
       productData.append("description", formData.description)
       productData.append("price", formData.price.toString())
-      productData.append("organization", formData.organization)
       productData.append("catalog", formData.catalog)
       productData.append("added_by", user.id)
 
@@ -260,74 +243,29 @@ export default function NewProductPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="organization">Organization</Label>
-              {isLoadingOrgs ? (
+              <Label htmlFor="catalog">Catalog</Label>
+              {isLoadingCatalogs ? (
                 <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
-              ) : organizations.length > 0 ? (
-                <Select value={formData.organization} onValueChange={handleOrganizationChange} required>
+              ) : catalogs.length > 0 ? (
+                <Select value={formData.catalog} onValueChange={handleCatalogChange} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an organization" />
+                    <SelectValue placeholder="Select a catalog" />
                   </SelectTrigger>
                   <SelectContent>
-                    {organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.organization_name}
+                    {catalogs.map((catalog) => (
+                      <SelectItem key={catalog.id} value={catalog.id}>
+                        {catalog.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               ) : (
                 <div className="rounded-md border border-dashed p-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    You need to be an admin or moderator of an organization to add products.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No catalogs found.</p>
                   <Button asChild variant="link" className="mt-2 text-green-600">
-                    <Link href="/dashboard/organizations/new">Create an organization</Link>
+                    <Link href="/dashboard/catalogs/new">Create a catalog</Link>
                   </Button>
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="catalog">Catalog</Label>
-              {isLoadingCatalogs ? (
-                <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
-              ) : formData.organization ? (
-                filteredCatalogs.length > 0 ? (
-                  <Select
-                    value={formData.catalog}
-                    onValueChange={handleCatalogChange}
-                    required
-                    disabled={!formData.organization}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a catalog" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCatalogs.map((catalog) => (
-                        <SelectItem key={catalog.id} value={catalog.id}>
-                          {catalog.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="rounded-md border border-dashed p-4 text-center">
-                    <p className="text-sm text-muted-foreground">No catalogs found for this organization.</p>
-                    <Button asChild variant="link" className="mt-2 text-green-600">
-                      <Link href="/dashboard/catalogs/new">Create a catalog</Link>
-                    </Button>
-                  </div>
-                )
-              ) : (
-                <Select disabled>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an organization first" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="placeholder">Select an organization first</SelectItem>
-                  </SelectContent>
-                </Select>
               )}
             </div>
 
@@ -394,7 +332,7 @@ export default function NewProductPage() {
             <Button
               type="submit"
               className="bg-green-600 hover:bg-green-700"
-              disabled={isSubmitting || organizations.length === 0 || !formData.catalog}
+              disabled={isSubmitting || !formData.catalog}
             >
               {isSubmitting ? (
                 <>

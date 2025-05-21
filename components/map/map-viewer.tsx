@@ -23,25 +23,40 @@ export function MapViewer({ userLocation }: MapViewerProps) {
   const [danuserLocations, setDanuserLocations] = useState<DanuserLocation[]>([])
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchDanuserLocations() {
       try {
-        const result = await pb.collection("danusin_users").getList(1, 100, {
-          filter: "isdanuser=true && location:exists",
+        // Fix the filter expression
+        const result = await pb.collection("users").getList(1, 100, {
+          filter: "isdanuser = true && location != null",
         })
 
-        const locations = result.items.map((user: any) => ({
-          id: user.id,
-          name: user.name,
-          location: user.location,
-        }))
+        if (!isMounted) return
+
+        const locations = result.items
+          .filter((user: any) => user.location && user.location.lon && user.location.lat)
+          .map((user: any) => ({
+            id: user.id,
+            name: user.name || "Danuser",
+            location: user.location,
+          }))
 
         setDanuserLocations(locations)
-      } catch (error) {
-        console.error("Error fetching danuser locations:", error)
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching danuser locations:", error)
+        }
       }
     }
 
     fetchDanuserLocations()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   useEffect(() => {

@@ -16,6 +16,8 @@ export function DashboardCards() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchStats() {
       if (!user) return
 
@@ -31,6 +33,8 @@ export function DashboardCards() {
               countOnly: true,
             })
 
+        if (!isMounted) return
+
         // Get catalogs count
         const catalogsResult = isDanuser
           ? await pb.collection("danusin_catalog").getList(1, 1, {
@@ -42,6 +46,8 @@ export function DashboardCards() {
               countOnly: true,
             })
 
+        if (!isMounted) return
+
         // Get products count (for danusers, get products they added; for users, get products from catalogs they have access to)
         const productsResult = isDanuser
           ? await pb.collection("danusin_product").getList(1, 1, {
@@ -50,10 +56,14 @@ export function DashboardCards() {
             })
           : { totalItems: 0 } // For regular users, we'd need a more complex query to get products from catalogs they have access to
 
+        if (!isMounted) return
+
         // Get members count (only for danusers - count members in their organizations)
         const membersResult = isDanuser
           ? { totalItems: 0 } // This would require a more complex query to get all members across all organizations
           : { totalItems: 0 }
+
+        if (!isMounted) return
 
         setStats({
           organizations: orgsResult.totalItems,
@@ -61,14 +71,24 @@ export function DashboardCards() {
           products: productsResult.totalItems,
           members: membersResult.totalItems,
         })
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error)
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching dashboard stats:", error)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchStats()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [user, isDanuser])
 
   const statCards = [

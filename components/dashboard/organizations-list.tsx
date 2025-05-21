@@ -21,11 +21,6 @@ type Organization = {
   target_progress: number
 }
 
-type UserRole = {
-  organization: string
-  role: "admin" | "moderator" | "member"
-}
-
 export function OrganizationsList() {
   const { user, isDanuser } = useAuth()
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -33,27 +28,31 @@ export function OrganizationsList() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchOrganizations() {
       if (!user) return
 
       try {
-        // Get organizations the user is a member of
-        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 10, {
-          filter: `user="${user.id}"`,
+        // Get all user organization roles
+        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
+          filter: `user = "${user.id}"`,
         })
 
+        if (!isMounted) return
+
         // Create a map of organization IDs to roles
-        const roles = userOrgsResult.items.reduce((acc: Record<string, string>, item: any) => {
-          if (item.organization && item.role) {
-            acc[item.organization] = item.role
+        const roles: Record<string, string> = {}
+        const orgIds: string[] = []
+
+        userOrgsResult.items.forEach((item: any) => {
+          if (item.organization) {
+            roles[item.organization] = item.role
+            orgIds.push(item.organization)
           }
-          return acc
-        }, {})
+        })
 
         setUserRoles(roles)
-
-        // Get the organization details for each organization ID
-        const orgIds = userOrgsResult.items.map((item: any) => item.organization).filter(Boolean)
 
         if (orgIds.length === 0) {
           setOrganizations([])
@@ -61,19 +60,41 @@ export function OrganizationsList() {
           return
         }
 
-        const orgsResult = await pb.collection("danusin_organization").getList(1, 20, {
-          filter: orgIds.map((id) => `id="${id}"`).join(" || "),
-        })
+        // Fetch organization details for each organization ID
+        const orgsPromises = orgIds.map((id) =>
+          pb
+            .collection("danusin_organization")
+            .getOne(id)
+            .catch((err) => {
+              console.error(`Error fetching organization ${id}:`, err)
+              return null
+            }),
+        )
 
-        setOrganizations(orgsResult.items as unknown as Organization[])
-      } catch (error) {
-        console.error("Error fetching organizations:", error)
+        const orgsResults = await Promise.all(orgsPromises)
+
+        if (!isMounted) return
+
+        const validOrgs = orgsResults.filter(Boolean) as Organization[]
+        setOrganizations(validOrgs)
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching organizations:", error)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchOrganizations()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [user])
 
   if (loading) {

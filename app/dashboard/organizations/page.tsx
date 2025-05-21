@@ -1,6 +1,7 @@
+import { OrganizationsList } from "@/components/dashboard/organizations-list"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Building2, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 
 export default function OrganizationsPage() {
   return (
@@ -20,19 +21,8 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-green-300 bg-white p-12 text-center">
-        <Building2 className="mb-4 h-12 w-12 text-green-300" />
-        <h2 className="mb-2 text-xl font-semibold">No Organizations Yet</h2>
-        <p className="mb-6 max-w-md text-muted-foreground">
-          Create your first organization to start managing catalogs and products.
-        </p>
-        <Button asChild className="bg-green-600 hover:bg-green-700">
-          <Link href="/dashboard/organizations/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Organization
-          </Link>
-        </Button>
-      </div>
+      {/* Display the organizations list */}
+      <OrganizationsList showEmpty={true} />
     </div>
   )
 }
