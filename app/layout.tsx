@@ -4,7 +4,10 @@ import { Inter } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
 import Header from "@/components/header"
-import Footer from "@/components/footer"
+import { AuthProvider } from "@/components/auth/auth-provider"
+import { Toaster } from "@/components/ui/toaster"
+
+import Footer  from "@/components/footer"
 // import FooterClientConditional from "@/components/footer-client-conditional"
 
 
@@ -45,9 +48,11 @@ export default function RootLayout({
         <link href="/assets/css/main.css" rel="stylesheet" />
       </head>
       <body className={inter.className}>
+        <AuthProvider>
         <Header />
         <main>{children}</main>
         <Footer />
+        </AuthProvider>
 
         {/* Vendor JS Scripts */}
         <Script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js" strategy="afterInteractive" />
