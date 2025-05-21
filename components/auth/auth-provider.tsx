@@ -2,10 +2,10 @@
 
 import type React from "react"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { pb } from "@/lib/pocketbase"
-import { useRouter, usePathname } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pb } from "@/lib/pocketbase"
+import { usePathname, useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from "react"
 
 type User = {
   id: string
@@ -14,7 +14,11 @@ type User = {
   name: string
   isdanuser: boolean
   avatar: string
+  bio?: string
   location?: { lon: number; lat: number }
+  location_text?: string
+  email_notifications?: boolean
+  marketing_emails?: boolean
 }
 
 type AuthContextType = {
@@ -26,6 +30,7 @@ type AuthContextType = {
   logout: () => void
   isDanuser: boolean
   updateUserLocation: (lon: number, lat: number) => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -36,22 +41,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  // Function to process user data and add avatar URL
+  const processUserData = (userData: any): User => {
+    let avatarUrl = ""
+    if (userData.avatar) {
+      avatarUrl = pb.files.getUrl(userData, userData.avatar)
+    }
+
+    return {
+      ...userData,
+      avatar: avatarUrl,
+    }
+  }
+
+  // Function to refresh user data
+  const refreshUser = async () => {
+    if (!pb.authStore.isValid || !pb.authStore.model) return
+
+    try {
+      const userId = pb.authStore.model.id
+      const userData = await pb.collection("danusin_users").getOne(userId)
+      setUser(processUserData(userData))
+    } catch (error) {
+      console.error("Error refreshing user data:", error)
+    }
+  }
+
   useEffect(() => {
     // Check if user is already logged in
-    if (pb.authStore.isValid) {
-      setUser(pb.authStore.model as unknown as User)
+    if (pb.authStore.isValid && pb.authStore.model) {
+      setUser(processUserData(pb.authStore.model as any))
     }
     setIsLoading(false)
 
     // Subscribe to auth state changes
     pb.authStore.onChange(() => {
-      setUser(pb.authStore.model ? (pb.authStore.model as unknown as User) : null)
+      setUser(pb.authStore.model ? processUserData(pb.authStore.model as any) : null)
     })
   }, [])
 
   const login = async (email: string, password: string) => {
     try {
-      await pb.collection("users").authWithPassword(email, password)
+      const authData = await pb.collection("danusin_users").authWithPassword(email, password)
+      setUser(processUserData(authData.record))
       router.push("/dashboard")
     } catch (error) {
       console.error("Login error:", error)
@@ -62,15 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     try {
       // Open Google OAuth2 authentication
-      const authData = await pb.collection("users").authWithOAuth2({ provider: "google" })
+      const authData = await pb.collection("danusin_users").authWithOAuth2({ provider: "google" })
 
       // Update user record if needed
       if (authData.meta?.isNew) {
-        await pb.collection("users").update(authData.record.id, {
+        await pb.collection("danusin_users").update(authData.record.id, {
           isdanuser: false,
         })
       }
 
+      setUser(processUserData(authData.record))
       router.push("/dashboard")
     } catch (error) {
       console.error("Google login error:", error)
@@ -81,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, passwordConfirm: string, name: string) => {
     try {
       // Create user
-      await pb.collection("users").create({
+      const userData = await pb.collection("danusin_users").create({
         email,
         password,
         passwordConfirm,
@@ -90,7 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       // Login after registration
-      await pb.collection("users").authWithPassword(email, password)
+      await pb.collection("danusin_users").authWithPassword(email, password)
+      setUser(processUserData(userData))
 
       // Redirect to keyword selection page
       router.push("/register/keywords")
@@ -102,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     pb.authStore.clear()
+    setUser(null)
     router.push("/")
   }
 
@@ -109,14 +144,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return
 
     try {
-      // Only update location for danusers
+      // Only update location for dandanusin_users
       if (user.isdanuser) {
-        await pb.collection("users").update(user.id, {
+        const updatedUser = await pb.collection("danusin_users").update(user.id, {
           location: { lon, lat },
         })
 
         // Update local user state
-        setUser((prev) => (prev ? { ...prev, location: { lon, lat } } : null))
+        setUser(processUserData(updatedUser))
       }
     } catch (error) {
       console.error("Error updating user location:", error)
@@ -151,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     isDanuser: user?.isdanuser || false,
     updateUserLocation,
+    refreshUser,
   }
 
   if (isLoading) {
