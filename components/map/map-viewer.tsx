@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Scene, PointLayer } from "@antv/l7"
-import { Mapbox } from "@antv/l7-maps"
-import { pb } from "@/lib/pocketbase"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pb } from "@/lib/pocketbase"
+import { PointLayer, Scene } from "@antv/l7"
+import { Mapbox } from "@antv/l7-maps"
+import { useEffect, useRef, useState } from "react"
 
 type MapViewerProps = {
   userLocation: { lon: number; lat: number } | null
@@ -25,7 +25,7 @@ export function MapViewer({ userLocation }: MapViewerProps) {
   useEffect(() => {
     async function fetchDanuserLocations() {
       try {
-        const result = await pb.collection("users").getList(1, 100, {
+        const result = await pb.collection("danusin_users").getList(1, 100, {
           filter: "isdanuser=true && location:exists",
         })
 

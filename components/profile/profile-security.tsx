@@ -2,13 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { pb } from "@/lib/pocketbase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
+import { pb } from "@/lib/pocketbase"
 import { Loader2 } from "lucide-react"
+import { useState } from "react"
 
 type ProfileSecurityProps = {
   user: any
@@ -37,10 +37,10 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
 
     try {
       // First verify the current password
-      await pb.collection("users").authWithPassword(user.email, currentPassword)
+      await pb.collection("danusin_users").authWithPassword(user.email, currentPassword)
 
       // Then update the password
-      await pb.collection("users").update(user.id, {
+      await pb.collection("danusin_users").update(user.id, {
         password: newPassword,
         passwordConfirm: confirmPassword,
       })

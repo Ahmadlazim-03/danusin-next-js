@@ -2,13 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { pb } from "@/lib/pocketbase"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/components/ui/use-toast"
+import { pb } from "@/lib/pocketbase"
+import { Loader2 } from "lucide-react"
+import { useState } from "react"
 
 type ProfilePreferencesProps = {
   user: any
@@ -25,7 +25,7 @@ export function ProfilePreferences({ user }: ProfilePreferencesProps) {
     setIsLoading(true)
 
     try {
-      await pb.collection("users").update(user.id, {
+      await pb.collection("danusin_users").update(user.id, {
         email_notifications: emailNotifications,
         marketing_emails: marketingEmails,
       })

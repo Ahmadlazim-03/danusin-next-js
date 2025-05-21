@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { pb } from "@/lib/pocketbase"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useEffect, useState } from "react"
 
 export function DashboardCards() {
   const { user, isDanuser } = useAuth()

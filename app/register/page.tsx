@@ -2,21 +2,25 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/components/auth/auth-provider"
+import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { FaGoogle } from "react-icons/fa"
 
 export default function RegisterPage() {
   const [name, setName] = useState("")
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [passwordConfirm, setPasswordConfirm] = useState("")
+  const [isDanuser, setIsDanuser] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { register, loginWithGoogle } = useAuth()
   const { toast } = useToast()
@@ -33,10 +37,19 @@ export default function RegisterPage() {
       return
     }
 
+    if (!username.trim()) {
+      toast({
+        title: "Username required",
+        description: "Please enter a username.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      await register(email, password, passwordConfirm, name)
+      await register(email, password, passwordConfirm, name, username, isDanuser)
       toast({
         title: "Registration successful",
         description: "Your account has been created. Please select your interests.",
@@ -55,7 +68,7 @@ export default function RegisterPage() {
   const handleGoogleRegister = async () => {
     setIsLoading(true)
     try {
-      await loginWithGoogle()
+      await loginWithGoogle(isDanuser)
     } catch (error) {
       toast({
         title: "Google registration failed",
@@ -95,6 +108,16 @@ export default function RegisterPage() {
               <Input id="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -125,8 +148,24 @@ export default function RegisterPage() {
                 required
               />
             </div>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="isDanuser" className="flex flex-col space-y-1">
+                <span>Register as Danuser</span>
+                <span className="font-normal text-xs text-muted-foreground">
+                  Danusers can create organizations and manage catalogs
+                </span>
+              </Label>
+              <Switch id="isDanuser" checked={isDanuser} onCheckedChange={setIsDanuser} />
+            </div>
             <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
         </CardContent>

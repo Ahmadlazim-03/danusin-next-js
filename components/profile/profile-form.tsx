@@ -2,16 +2,16 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
-import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { pb } from "@/lib/pocketbase"
 import { Camera, Loader2, User } from "lucide-react"
+import { useRef, useState } from "react"
 
 type ProfileFormProps = {
   user: any
@@ -63,7 +63,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       formData.append("avatar", file)
 
       // Update the user record with the new avatar
-      const updatedUser = await pb.collection("users").update(user.id, formData)
+      const updatedUser = await pb.collection("danusin_users").update(user.id, formData)
 
       // Update the avatar URL in the state
       if (updatedUser.avatar) {
@@ -93,7 +93,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     try {
       // Update user profile
-      await pb.collection("users").update(user.id, {
+      await pb.collection("danusin_users").update(user.id, {
         name,
         bio,
         location_text: location,

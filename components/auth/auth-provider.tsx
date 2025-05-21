@@ -25,8 +25,15 @@ type AuthContextType = {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<void>
-  register: (email: string, password: string, passwordConfirm: string, name: string) => Promise<void>
+  loginWithGoogle: (isDanuser?: boolean) => Promise<void>
+  register: (
+    email: string,
+    password: string,
+    passwordConfirm: string,
+    name: string,
+    username: string,
+    isDanuser: boolean,
+  ) => Promise<void>
   logout: () => void
   isDanuser: boolean
   updateUserLocation: (lon: number, lat: number) => Promise<void>
@@ -91,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (isDanuser = false) => {
     try {
       // Open Google OAuth2 authentication
       const authData = await pb.collection("danusin_users").authWithOAuth2({ provider: "google" })
@@ -99,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Update user record if needed
       if (authData.meta?.isNew) {
         await pb.collection("danusin_users").update(authData.record.id, {
-          isdanuser: false,
+          isdanuser: isDanuser,
         })
       }
 
@@ -111,7 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const register = async (email: string, password: string, passwordConfirm: string, name: string) => {
+  const register = async (
+    email: string,
+    password: string,
+    passwordConfirm: string,
+    name: string,
+    username: string,
+    isDanuser: boolean,
+  ) => {
     try {
       // Create user
       const userData = await pb.collection("danusin_users").create({
@@ -119,7 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         passwordConfirm,
         name,
-        isdanuser: false,
+        username,
+        isdanuser: isDanuser,
       })
 
       // Login after registration

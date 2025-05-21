@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
-import Link from "next/link"
-import { Building2, Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { pb } from "@/lib/pocketbase"
+import { Building2, Plus, Settings } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 type Organization = {
   id: string
@@ -20,9 +21,15 @@ type Organization = {
   target_progress: number
 }
 
+type UserRole = {
+  organization: string
+  role: "admin" | "moderator" | "member"
+}
+
 export function OrganizationsList() {
   const { user, isDanuser } = useAuth()
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [userRoles, setUserRoles] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,11 +40,32 @@ export function OrganizationsList() {
         // Get organizations the user is a member of
         const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 10, {
           filter: `user="${user.id}"`,
-          expand: "organization",
         })
 
-        const orgs = userOrgsResult.items.map((item: any) => item.expand?.organization)
-        setOrganizations(orgs.filter(Boolean))
+        // Create a map of organization IDs to roles
+        const roles = userOrgsResult.items.reduce((acc: Record<string, string>, item: any) => {
+          if (item.organization && item.role) {
+            acc[item.organization] = item.role
+          }
+          return acc
+        }, {})
+
+        setUserRoles(roles)
+
+        // Get the organization details for each organization ID
+        const orgIds = userOrgsResult.items.map((item: any) => item.organization).filter(Boolean)
+
+        if (orgIds.length === 0) {
+          setOrganizations([])
+          setLoading(false)
+          return
+        }
+
+        const orgsResult = await pb.collection("danusin_organization").getList(1, 20, {
+          filter: orgIds.map((id) => `id="${id}"`).join(" || "),
+        })
+
+        setOrganizations(orgsResult.items as unknown as Organization[])
       } catch (error) {
         console.error("Error fetching organizations:", error)
       } finally {
@@ -104,11 +132,7 @@ export function OrganizationsList() {
         ) : (
           <div className="space-y-4">
             {organizations.map((org) => (
-              <Link
-                key={org.id}
-                href={`/organizations/${org.organization_slug}`}
-                className="flex items-start gap-4 rounded-lg p-3 transition-colors hover:bg-muted"
-              >
+              <div key={org.id} className="flex items-start gap-4 rounded-lg p-3 transition-colors hover:bg-muted">
                 <div className="flex-shrink-0 overflow-hidden rounded-md h-12 w-12">
                   <Image
                     src={org.organization_image || "/placeholder.svg?height=48&width=48"}
@@ -119,10 +143,35 @@ export function OrganizationsList() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-medium">{org.organization_name}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">{org.organization_name}</h3>
+                    <Badge
+                      variant={
+                        userRoles[org.id] === "admin"
+                          ? "default"
+                          : userRoles[org.id] === "moderator"
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      {userRoles[org.id]}
+                    </Badge>
+                  </div>
                   <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{org.organization_description}</p>
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/organizations/${org.organization_slug}`}>View</Link>
+                    </Button>
+                    {(userRoles[org.id] === "admin" || userRoles[org.id] === "moderator") && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/organizations/${org.id}`}>
+                          <Settings className="mr-1 h-3 w-3" /> Manage
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
