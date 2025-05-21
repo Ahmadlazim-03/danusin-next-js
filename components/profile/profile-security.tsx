@@ -10,6 +10,9 @@ import { pb } from "@/lib/pocketbase"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
+// Use the correct collection name
+const USERS_COLLECTION = "danusin_users"
+
 type ProfileSecurityProps = {
   user: any
 }
@@ -37,10 +40,10 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
 
     try {
       // First verify the current password
-      await pb.collection("danusin_users").authWithPassword(user.email, currentPassword)
+      await pb.collection(USERS_COLLECTION).authWithPassword(user.email, currentPassword)
 
       // Then update the password
-      await pb.collection("danusin_users").update(user.id, {
+      await pb.collection(USERS_COLLECTION).update(user.id, {
         password: newPassword,
         passwordConfirm: confirmPassword,
       })

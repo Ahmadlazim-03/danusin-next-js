@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/auth/auth-provider"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,75 +14,50 @@ type Catalog = {
   name: string
   description: string
   created: string
-  organization: string
-  organization_name?: string
-}
-
-type UserRole = {
-  organization: string
-  role: "admin" | "moderator" | "member"
+  created_by: string
 }
 
 export function CatalogsList() {
   const { user, isDanuser } = useAuth()
   const [catalogs, setCatalogs] = useState<Catalog[]>([])
-  const [userRoles, setUserRoles] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchCatalogs() {
       if (!user) return
 
       try {
-        // Get user roles for organizations
-        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
-          filter: `user="${user.id}"`,
-        })
-
-        // Create a map of organization IDs to roles
-        const roles = userOrgsResult.items.reduce((acc: Record<string, string>, item: any) => {
-          if (item.organization && item.role) {
-            acc[item.organization] = item.role
-          }
-          return acc
-        }, {})
-
-        setUserRoles(roles)
-
-        // Get organizations the user is a member of
-        const orgIds = userOrgsResult.items.map((item: any) => item.organization).filter(Boolean)
-
-        if (orgIds.length === 0) {
-          setCatalogs([])
-          setLoading(false)
-          return
-        }
-
-        // Get catalogs for these organizations
+        // Get catalogs created by the user
         const catalogsResult = await pb.collection("danusin_catalog").getList(1, 20, {
-          filter: orgIds.map((id) => `organization="${id}"`).join(" || "),
-          expand: "organization",
+          filter: `created_by="${user.id}"`,
         })
 
-        // Process catalogs to include organization name
-        const processedCatalogs = catalogsResult.items.map((catalog: any) => ({
-          ...catalog,
-          organization_name: catalog.expand?.organization?.organization_name || "Unknown Organization",
-        }))
+        if (!isMounted) return
 
-        setCatalogs(processedCatalogs as unknown as Catalog[])
-      } catch (error) {
-        console.error("Error fetching catalogs:", error)
+        setCatalogs(catalogsResult.items as unknown as Catalog[])
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching catalogs:", error)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchCatalogs()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [user])
 
-  const canCreateCatalog =
-    isDanuser && Object.values(userRoles).some((role) => role === "admin" || role === "moderator")
+  const canCreateCatalog = isDanuser
 
   if (loading) {
     return (
@@ -152,20 +126,17 @@ export function CatalogsList() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">{catalog.name}</h3>
-                    <Badge variant="outline">{catalog.organization_name}</Badge>
                   </div>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{catalog.description}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/dashboard/catalogs/${catalog.id}`}>View</Link>
                     </Button>
-                    {userRoles[catalog.organization] === "admin" || userRoles[catalog.organization] === "moderator" ? (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/catalogs/${catalog.id}/edit`}>
-                          <Settings className="mr-1 h-3 w-3" /> Manage
-                        </Link>
-                      </Button>
-                    ) : null}
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/dashboard/catalogs/${catalog.id}/edit`}>
+                        <Settings className="mr-1 h-3 w-3" /> Manage
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </div>

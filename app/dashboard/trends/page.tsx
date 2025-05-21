@@ -1,14 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
 import { TrendChart } from "@/components/trend/trend-chart"
 import { TrendKeywords } from "@/components/trend/trend-keywords"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { pb } from "@/lib/pocketbase"
 import { AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react"
 
 type Trend = {
   id: string
@@ -34,6 +34,8 @@ export default function TrendsPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchUserKeywordsAndTrends() {
       if (!user || !isDanuser) {
         setError("Only danusers can access trend analysis.")
@@ -47,6 +49,8 @@ export default function TrendsPage() {
           filter: `user_id="${user.id}"`,
           expand: "keyword_id",
         })
+
+        if (!isMounted) return
 
         const keywords = keywordUserRecords.items
           .map((item: any) => ({
@@ -65,17 +69,31 @@ export default function TrendsPage() {
             sort: "-date",
           })
 
+          if (!isMounted) return
+
           setTrends(trendsResult.items as unknown as Trend[])
         }
-      } catch (error) {
-        console.error("Error fetching trends:", error)
-        setError("Failed to load trend data. Please try again later.")
+      } catch (error: any) {
+        // Check if this is an auto-cancellation error (can be ignored)
+        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
+          console.error("Error fetching trends:", error)
+          if (isMounted) {
+            setError("Failed to load trend data. Please try again later.")
+          }
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchUserKeywordsAndTrends()
+
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false
+    }
   }, [user, isDanuser])
 
   if (!isDanuser) {

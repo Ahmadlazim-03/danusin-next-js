@@ -102,19 +102,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Open Google OAuth2 authentication
       const authData = await pb.collection("danusin_users").authWithOAuth2({ provider: "google" })
-
+      console.log("Google authData.meta:", authData.meta)
+  
       // Update user record if needed
       if (authData.meta?.isNew) {
-        await pb.collection("danusin_users").update(authData.record.id, {
+        const email = authData.meta?.email || `user_${authData.record.id}`
+  
+        // Generate username from name
+        let username = ""
+        if (authData.meta?.name) {
+          // Remove spaces and convert to lowercase
+          username = authData.meta.name.replace(/\s+/g, "").toLowerCase()
+        } else {
+          // fallback if name is not provided
+          username = email.split("@")[0].toLowerCase()
+        }
+  
+        // Sanitize username to contain only allowed characters
+        username = username.replace(/[^a-z0-9._-]/g, "_")
+  
+        // Check if username is already taken
+        let isUsernameAvailable = false
+        try {
+          await pb.collection("danusin_users").getFirstListItem(`username="${username}"`)
+          console.log(`Username ${username} is already taken`)
+        } catch (error) {
+          // Error indicates username availability (not found)
+          isUsernameAvailable = true
+        }
+  
+        // Append a random suffix if username is taken
+        if (!isUsernameAvailable) {
+          const emailPrefix = email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "_")
+          username = `${emailPrefix}_${Math.random().toString(36).slice(2, 8)}`
+          console.log(`Generated unique username: ${username}`)
+        }
+  
+        // Prepare data for updating the user record
+        const updateData = {
           isdanuser: isDanuser,
-        })
+          username: username,
+          name: authData.meta?.name || "",
+          email: email,
+        }
+        console.log("Updating user with:", updateData)
+  
+        // Update user record with generated username
+        await pb.collection("danusin_users").update(authData.record.id, updateData)
+  
+        // Refresh user data
+        await refreshUser()
       }
-
+  
       setUser(processUserData(authData.record))
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("Google login error:", error)
-      throw error
+      router.push(authData.meta?.isNew ? "/register/keywords" : "/dashboard")
+    } catch (error: any) {
+      console.error("Google login error:", error, error.data)
+      throw new Error(error.message || "Failed to register with Google")
     }
   }
 
@@ -159,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return
 
     try {
-      // Only update location for dandanusin_users
+      // Only update location for danusin_users
       if (user.isdanuser) {
         const updatedUser = await pb.collection("danusin_users").update(user.id, {
           location: { lon, lat },

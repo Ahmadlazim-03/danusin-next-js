@@ -10,6 +10,9 @@ import { pb } from "@/lib/pocketbase"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
+// Use the correct collection name
+const USERS_COLLECTION = "danusin_users"
+
 type ProfilePreferencesProps = {
   user: any
 }
@@ -25,7 +28,7 @@ export function ProfilePreferences({ user }: ProfilePreferencesProps) {
     setIsLoading(true)
 
     try {
-      await pb.collection("danusin_users").update(user.id, {
+      await pb.collection(USERS_COLLECTION).update(user.id, {
         email_notifications: emailNotifications,
         marketing_emails: marketingEmails,
       })
