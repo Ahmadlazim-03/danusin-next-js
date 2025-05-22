@@ -1,6 +1,6 @@
-import type React from "react"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { MobileSidebar } from "@/components/dashboard/mobile-sidebar"
+import type React from "react"
 
 export default function DashboardLayout({
   children,

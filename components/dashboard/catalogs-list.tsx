@@ -1,10 +1,11 @@
 "use client"
 
 import { useAuth } from "@/components/auth/auth-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { pb } from "@/lib/pocketbase"
+import { usePocketBaseQuery } from "@/hooks/use-pocketbase-query"
 import { LayoutGrid, Plus, Settings } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -15,6 +16,8 @@ type Catalog = {
   description: string
   created: string
   created_by: string
+  organization_name?: string
+  by_organization?: any
 }
 
 export function CatalogsList() {
@@ -22,44 +25,60 @@ export function CatalogsList() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Use the custom hook to fetch catalogs created by the user
+  const { data: createdCatalogsData, isLoading: isLoadingCreated } = usePocketBaseQuery({
+    collection: "danusin_catalog",
+    queryParams: {
+      filter: user ? `created_by="${user.id}"` : "",
+    },
+    enabled: !!user && isDanuser,
+  })
+
+  // Use the custom hook to fetch catalogs the user has access to
+  const { data: catalogAccessData, isLoading: isLoadingAccess } = usePocketBaseQuery({
+    collection: "danusin_catalog_user",
+    queryParams: {
+      filter: user ? `user_id="${user.id}"` : "",
+      expand: "catalog_id",
+    },
+    enabled: !!user,
+  })
+
   useEffect(() => {
-    let isMounted = true
+    if (!user || (isLoadingCreated && isDanuser) || isLoadingAccess) {
+      return
+    }
 
-    async function fetchCatalogs() {
-      if (!user) return
+    setLoading(true)
 
-      try {
-        // Get catalogs created by the user
-        const catalogsResult = await pb.collection("danusin_catalog").getList(1, 20, {
-          filter: `created_by="${user.id}"`,
-        })
+    try {
+      const allCatalogs: Catalog[] = []
 
-        if (!isMounted) return
-
-        setCatalogs(catalogsResult.items as unknown as Catalog[])
-      } catch (error: any) {
-        // Check if this is an auto-cancellation error (can be ignored)
-        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
-          console.error("Error fetching catalogs:", error)
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
+      // Add catalogs created by the user
+      if (createdCatalogsData && createdCatalogsData.items) {
+        allCatalogs.push(...createdCatalogsData.items)
       }
-    }
 
-    fetchCatalogs()
+      // Add catalogs the user has access to
+      if (catalogAccessData && catalogAccessData.items) {
+        catalogAccessData.items.forEach((access: any) => {
+          if (access.expand?.catalog_id && !allCatalogs.some((c) => c.id === access.expand.catalog_id.id)) {
+            allCatalogs.push(access.expand.catalog_id)
+          }
+        })
+      }
 
-    // Cleanup function to prevent setting state after unmount
-    return () => {
-      isMounted = false
+      setCatalogs(allCatalogs)
+    } catch (error) {
+      console.error("Error processing catalogs:", error)
+    } finally {
+      setLoading(false)
     }
-  }, [user])
+  }, [user, createdCatalogsData, catalogAccessData, isLoadingCreated, isLoadingAccess, isDanuser])
 
   const canCreateCatalog = isDanuser
 
-  if (loading) {
+  if (loading || isLoadingCreated || isLoadingAccess) {
     return (
       <Card className="border-green-100 bg-white">
         <CardHeader className="pb-0">
@@ -126,6 +145,7 @@ export function CatalogsList() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">{catalog.name}</h3>
+                    {catalog.organization_name && <Badge variant="outline">{catalog.organization_name}</Badge>}
                   </div>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{catalog.description}</p>
                   <div className="mt-2 flex items-center gap-2">
@@ -137,6 +157,13 @@ export function CatalogsList() {
                         <Settings className="mr-1 h-3 w-3" /> Manage
                       </Link>
                     </Button>
+                    {catalog.by_organization && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/products/new?catalog=${catalog.id}&org=${catalog.by_organization}`}>
+                          <Plus className="mr-1 h-3 w-3" /> Add Product
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

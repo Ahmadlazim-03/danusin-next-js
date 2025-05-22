@@ -1,166 +1,210 @@
 "use client"
 
-import { Skeleton } from "@/components/ui/skeleton"
 import { pb } from "@/lib/pocketbase"
 import { PointLayer, Scene } from "@antv/l7"
 import { Mapbox } from "@antv/l7-maps"
+import { Loader } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-type MapViewerProps = {
+interface MapViewerProps {
   userLocation: { lon: number; lat: number } | null
 }
 
-type DanuserLocation = {
-  id: string
-  name: string
-  location: { lon: number; lat: number }
-}
-
 export function MapViewer({ userLocation }: MapViewerProps) {
+  const mapRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<Scene | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [loading, setLoading] = useState(true)
-  const [danuserLocations, setDanuserLocations] = useState<DanuserLocation[]>([])
+  const userLayerRef = useRef<PointLayer | null>(null)
+  const danusersLayerRef = useRef<PointLayer | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [danusers, setDanusers] = useState<any[]>([])
 
+  // Fetch danusers from PocketBase
   useEffect(() => {
-    let isMounted = true
-
-    async function fetchDanuserLocations() {
+    const fetchDanusers = async () => {
       try {
-        // Fix the filter expression
-        const result = await pb.collection("users").getList(1, 100, {
-          filter: "isdanuser = true && location != null",
+        const result = await pb.collection("danusin_users").getList(1, 100, {
+          filter: "isdanuser=true",
+          $autoCancel: false,
         })
 
-        if (!isMounted) return
-
-        const locations = result.items
-          .filter((user: any) => user.location && user.location.lon && user.location.lat)
-          .map((user: any) => ({
-            id: user.id,
-            name: user.name || "Danuser",
-            location: user.location,
-          }))
-
-        setDanuserLocations(locations)
-      } catch (error: any) {
-        // Check if this is an auto-cancellation error (can be ignored)
-        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
-          console.error("Error fetching danuser locations:", error)
-        }
+        setDanusers(result.items)
+      } catch (err) {
+        console.error("Error fetching danusers:", err)
       }
     }
 
-    fetchDanuserLocations()
+    fetchDanusers()
 
-    // Cleanup function to prevent setting state after unmount
+    // Subscribe to real-time updates
+    const unsubscribe = pb.collection("danusin_users").subscribe("*", (e) => {
+      if (e.action === "create" || e.action === "update") {
+        setDanusers((prev) => {
+          const index = prev.findIndex((user) => user.id === e.record.id)
+          if (index >= 0) {
+            const newUsers = [...prev]
+            newUsers[index] = e.record
+            return newUsers
+          }
+          return [...prev, e.record]
+        })
+      } else if (e.action === "delete") {
+        setDanusers((prev) => prev.filter((user) => user.id !== e.record.id))
+      }
+    })
+
     return () => {
-      isMounted = false
+      pb.collection("danusin_users").unsubscribe()
     }
   }, [])
 
+  // Initialize map
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!mapRef.current) return
 
-    // Default center if user location is not available
-    const defaultCenter = [121.4737, 31.2304] // Example coordinates
-    const center = userLocation ? [userLocation.lon, userLocation.lat] : defaultCenter
+    const initializeMap = async () => {
+      try {
+        // Default center if user location is not available
+        const defaultCenter = [0, 0]
+        const center = userLocation ? [userLocation.lon, userLocation.lat] : defaultCenter
 
-    // Initialize the map
-    const scene = new Scene({
-      id: containerRef.current,
-      map: new Mapbox({
-        style: "mapbox://styles/mapbox/light-v10",
-        center: center,
-        zoom: 11,
-        pitch: 0,
-        token: "pk.eyJ1IjoiZXZvcHRlY2giLCJhIjoiY21hcG85ZjhiMDByMDJqb2E1OGx4dGMyeSJ9.23o4bNoiuN4Xt9FpIfj1ow",
-      }),
-    })
-
-    sceneRef.current = scene
-
-    scene.on("loaded", () => {
-      setLoading(false)
-
-      // Add danuser locations to the map
-      if (danuserLocations.length > 0) {
-        const data = {
-          type: "FeatureCollection",
-          features: danuserLocations.map((danuser) => ({
-            type: "Feature",
-            properties: {
-              name: danuser.name,
-            },
-            geometry: {
-              type: "Point",
-              coordinates: [danuser.location.lon, danuser.location.lat],
-            },
-          })),
-        }
-
-        const pointLayer = new PointLayer({})
-          .source(data)
-          .shape("circle")
-          .size(20)
-          .color("#00c16a")
-          .style({
-            opacity: 0.8,
-            strokeWidth: 2,
-            stroke: "#fff",
-          })
-          .animate(true)
-          .active(true)
-
-        scene.addLayer(pointLayer)
-      }
-
-      // Add user location if available and user is a danuser
-      if (userLocation) {
-        const userPoint = {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              properties: {
-                name: "Your Location",
-              },
-              geometry: {
-                type: "Point",
-                coordinates: [userLocation.lon, userLocation.lat],
-              },
-            },
-          ],
-        }
-
-        const userLayer = new PointLayer({}).source(userPoint).shape("circle").size(30).color("#0a5331").style({
-          opacity: 1,
-          strokeWidth: 3,
-          stroke: "#fff",
+        const scene = new Scene({
+          id: mapRef.current,
+          map: new Mapbox({
+            style: "mapbox://styles/mapbox/streets-v11",
+            center,
+            pitch: 0,
+            zoom: userLocation ? 13 : 2,
+            token: "pk.eyJ1IjoiYWhtYWRsYXppbSIsImEiOiJjbWFudjJscDMwMGJjMmpvcXdja29vN2h6In0.lbl0E3ixhWKnKuQ5T1aQcw",
+          }),
         })
 
-        scene.addLayer(userLayer)
-      }
-    })
+        scene.on("loaded", () => {
+          setIsLoaded(true)
+          sceneRef.current = scene
+        })
 
-    return () => {
-      if (sceneRef.current) {
-        sceneRef.current.destroy()
+        scene.on("error", (err) => {
+          console.error("Map initialization error:", err)
+          setError("Failed to initialize map")
+        })
+
+        return () => {
+          if (scene) {
+            scene.destroy()
+          }
+        }
+      } catch (err) {
+        console.error("Error initializing map:", err)
+        setError("Failed to load map resources")
       }
     }
-  }, [userLocation, danuserLocations])
+
+    initializeMap()
+  }, [])
+
+  // Update user marker when location changes
+  useEffect(() => {
+    if (!isLoaded || !sceneRef.current || !userLocation) return
+
+    // Remove existing user layer if it exists
+    if (userLayerRef.current) {
+      sceneRef.current.removeLayer(userLayerRef.current)
+    }
+
+    // Create new user point layer
+    const userLayer = new PointLayer({})
+      .source(
+        [
+          {
+            lng: userLocation.lon,
+            lat: userLocation.lat,
+            name: "Your Location",
+          },
+        ],
+        {
+          parser: { type: "json", x: "lng", y: "lat" },
+        },
+      )
+      .shape("circle")
+      .size(12)
+      .color("#4CAF50")
+      .style({
+        opacity: 1,
+        stroke: "#FFFFFF",
+        strokeWidth: 2,
+      })
+      .animate(true)
+
+    sceneRef.current.addLayer(userLayer)
+    userLayerRef.current = userLayer
+
+    // Center map on user location
+    sceneRef.current.setCenter([userLocation.lon, userLocation.lat])
+    sceneRef.current.setZoom(13)
+  }, [isLoaded, userLocation])
+
+  // Update danusers markers
+  useEffect(() => {
+    if (!isLoaded || !sceneRef.current) return
+
+    // Remove existing danusers layer if it exists
+    if (danusersLayerRef.current) {
+      sceneRef.current.removeLayer(danusersLayerRef.current)
+    }
+
+    // Filter danusers with valid location data
+    const validDanusers = danusers.filter((user) => user.location && user.location.lat && user.location.lon)
+
+    if (validDanusers.length > 0) {
+      // Create new danusers point layer
+      const danusersLayer = new PointLayer({})
+        .source(
+          validDanusers.map((user) => ({
+            lng: user.location.lon,
+            lat: user.location.lat,
+            name: user.name || "Danuser",
+            id: user.id,
+          })),
+          {
+            parser: { type: "json", x: "lng", y: "lat" },
+          },
+        )
+        .shape("circle")
+        .size(10)
+        .color("#2196F3")
+        .style({
+          opacity: 0.8,
+          stroke: "#FFFFFF",
+          strokeWidth: 2,
+        })
+        .animate(true)
+
+      sceneRef.current.addLayer(danusersLayer)
+      danusersLayerRef.current = danusersLayer
+    }
+  }, [isLoaded, danusers])
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100 rounded-lg">
+        <Loader className="h-6 w-6 animate-spin mr-2" />
+        <p>Loading map...</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="w-full h-full">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-green-50 bg-opacity-50 z-10">
-          <div className="text-center">
-            <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
-            <p className="text-green-700 font-medium">Loading map...</p>
-          </div>
-        </div>
-      )}
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="h-full w-full rounded-lg overflow-hidden">
+      <div ref={mapRef} className="h-full w-full" />
     </div>
   )
 }

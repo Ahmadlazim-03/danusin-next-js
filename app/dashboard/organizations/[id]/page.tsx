@@ -1,14 +1,16 @@
 "use client"
 
 import { useAuth } from "@/components/auth/auth-provider"
+import { OrganizationCatalogs } from "@/components/organization/organization-catalogs"
 import { OrganizationMembersList } from "@/components/organization/organization-members-list"
+import { OrganizationProducts } from "@/components/organization/organization-products"
 import { OrganizationSettings } from "@/components/organization/organization-settings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { pb } from "@/lib/pocketbase"
-import { ArrowLeft, Building2, Users } from "lucide-react"
+import { ArrowLeft, Building2, LayoutGrid, Package, Settings, Users } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -24,6 +26,7 @@ export default function OrganizationManagePage() {
 
   useEffect(() => {
     let isMounted = true
+    const controller = new AbortController()
 
     const fetchOrganization = async () => {
       if (!user || !id) return
@@ -32,7 +35,10 @@ export default function OrganizationManagePage() {
         // Check user's role in this organization
         const roleResult = await pb
           .collection("danusin_user_organization_roles")
-          .getFirstListItem(`user="${user.id}" && organization="${id}"`)
+          .getFirstListItem(`user="${user.id}" && organization="${id}"`, {
+            signal: controller.signal,
+            $autoCancel: false,
+          })
 
         if (!isMounted) return
 
@@ -44,15 +50,11 @@ export default function OrganizationManagePage() {
 
         setUserRole(roleResult.role)
 
-        // Only admins and moderators can manage the organization
-        if (roleResult.role !== "admin" && roleResult.role !== "moderator") {
-          setError("You don't have permission to manage this organization")
-          setLoading(false)
-          return
-        }
-
         // Fetch organization details
-        const orgResult = await pb.collection("danusin_organization").getOne(id as string)
+        const orgResult = await pb.collection("danusin_organization").getOne(id as string, {
+          signal: controller.signal,
+          $autoCancel: false,
+        })
 
         if (!isMounted) return
 
@@ -76,6 +78,7 @@ export default function OrganizationManagePage() {
 
     return () => {
       isMounted = false
+      controller.abort()
     }
   }, [id, user])
 
@@ -152,7 +155,24 @@ export default function OrganizationManagePage() {
             <Users className="mr-2 h-4 w-4" />
             Members
           </TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          {(userRole === "admin" || userRole === "moderator") && (
+            <TabsTrigger value="products">
+              <Package className="mr-2 h-4 w-4" />
+              Products
+            </TabsTrigger>
+          )}
+          {(userRole === "admin" || userRole === "moderator") && (
+            <TabsTrigger value="catalogs">
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Catalogs
+            </TabsTrigger>
+          )}
+          {userRole === "admin" && (
+            <TabsTrigger value="settings">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
@@ -162,22 +182,56 @@ export default function OrganizationManagePage() {
               <CardDescription>Manage members and their roles in this organization</CardDescription>
             </CardHeader>
             <CardContent>
-              <OrganizationMembersList organizationId={id as string} userRole={userRole} />
+              <OrganizationMembersList
+                organizationId={id as string}
+                userRole={userRole}
+                canInviteMembers={userRole === "admin"}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Settings</CardTitle>
-              <CardDescription>Manage your organization's details and preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <OrganizationSettings organization={organization} userRole={userRole} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {(userRole === "admin" || userRole === "moderator") && (
+          <TabsContent value="products" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization Products</CardTitle>
+                <CardDescription>Manage products for this organization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OrganizationProducts organizationId={id as string} userRole={userRole} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {(userRole === "admin" || userRole === "moderator") && (
+          <TabsContent value="catalogs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization Catalogs</CardTitle>
+                <CardDescription>Manage catalogs for this organization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OrganizationCatalogs organizationId={id as string} userRole={userRole} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {userRole === "admin" && (
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Organization Settings</CardTitle>
+                <CardDescription>Manage your organization's details and preferences</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OrganizationSettings organization={organization} userRole={userRole} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

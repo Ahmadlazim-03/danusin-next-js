@@ -9,7 +9,7 @@ import { pb } from "@/lib/pocketbase"
 import { Building2, Plus, Settings } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type Organization = {
   id: string
@@ -21,25 +21,48 @@ type Organization = {
   target_progress: number
 }
 
-export function OrganizationsList() {
+export function OrganizationsList({ showEmpty = false }: { showEmpty?: boolean }) {
   const { user, isDanuser } = useAuth()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [userRoles, setUserRoles] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const cancelTokensRef = useRef<string[]>([])
+  const isMountedRef = useRef(true)
 
   useEffect(() => {
-    let isMounted = true
+    isMountedRef.current = true
+
+    return () => {
+      isMountedRef.current = false
+      // Cancel all pending requests on unmount
+      cancelTokensRef.current.forEach((token) => {
+        pb.cancelRequest(token)
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    // Clear previous cancel tokens
+    cancelTokensRef.current.forEach((token) => {
+      pb.cancelRequest(token)
+    })
+    cancelTokensRef.current = []
 
     async function fetchOrganizations() {
       if (!user) return
 
       try {
         // Get all user organization roles
+        const userOrgsCancelToken = `user_orgs_${Date.now()}`
+        cancelTokensRef.current.push(userOrgsCancelToken)
+
         const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
-          filter: `user = "${user.id}"`,
+          filter: `user="${user.id}"`,
+          $autoCancel: false,
+          $cancelKey: userOrgsCancelToken,
         })
 
-        if (!isMounted) return
+        if (!isMountedRef.current) return
 
         // Create a map of organization IDs to roles
         const roles: Record<string, string> = {}
@@ -61,39 +84,44 @@ export function OrganizationsList() {
         }
 
         // Fetch organization details for each organization ID
-        const orgsPromises = orgIds.map((id) =>
-          pb
+        const orgsPromises = orgIds.map((id) => {
+          const orgCancelToken = `org_${id}_${Date.now()}`
+          cancelTokensRef.current.push(orgCancelToken)
+
+          return pb
             .collection("danusin_organization")
-            .getOne(id)
+            .getOne(id, {
+              $autoCancel: false,
+              $cancelKey: orgCancelToken,
+            })
             .catch((err) => {
-              console.error(`Error fetching organization ${id}:`, err)
+              if (err.name !== "AbortError" && err.message !== "The request was autocancelled") {
+                console.error(`Error fetching organization ${id}:`, err)
+              }
               return null
-            }),
-        )
+            })
+        })
 
         const orgsResults = await Promise.all(orgsPromises)
 
-        if (!isMounted) return
+        if (!isMountedRef.current) return
 
         const validOrgs = orgsResults.filter(Boolean) as Organization[]
         setOrganizations(validOrgs)
       } catch (error: any) {
-        // Check if this is an auto-cancellation error (can be ignored)
+        // Only log errors that aren't related to cancellation
         if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
           console.error("Error fetching organizations:", error)
         }
       } finally {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setLoading(false)
         }
       }
     }
 
-    fetchOrganizations()
-
-    // Cleanup function to prevent setting state after unmount
-    return () => {
-      isMounted = false
+    if (user) {
+      fetchOrganizations()
     }
   }, [user])
 
@@ -119,6 +147,10 @@ export function OrganizationsList() {
         </CardContent>
       </Card>
     )
+  }
+
+  if (organizations.length === 0 && !showEmpty) {
+    return null
   }
 
   return (

@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { pb } from "@/lib/pocketbase"
-import { Package, Plus, Search } from "lucide-react"
+import { Building2, Package, Plus, Search } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -20,26 +21,101 @@ type Product = {
   image: string
   catalog: string
   catalog_name?: string
+  organization?: string
+  organization_name?: string
   added_by: string
+}
+
+type Organization = {
+  id: string
+  organization_name: string
 }
 
 export default function ProductsPage() {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [selectedOrg, setSelectedOrg] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     let isMounted = true
+    const controller = new AbortController()
 
-    async function fetchProducts() {
+    async function fetchUserOrganizations() {
       if (!user) return
 
       try {
-        // Get products added by the user
+        // Get organizations where user has admin or moderator role
+        const userOrgsResult = await pb.collection("danusin_user_organization_roles").getList(1, 100, {
+          filter: `user="${user.id}" && (role="admin" || role="moderator")`,
+          expand: "organization",
+          $autoCancel: false,
+        })
+
+        if (!isMounted) return
+
+        const orgs = userOrgsResult.items
+          .map((item: any) => ({
+            id: item.expand?.organization?.id,
+            organization_name: item.expand?.organization?.organization_name,
+          }))
+          .filter((org: any) => org.id && org.organization_name)
+
+        setOrganizations(orgs)
+
+        // Set default selected organization if available
+        if (orgs.length > 0) {
+          setSelectedOrg(orgs[0].id)
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error)
+      }
+    }
+
+    fetchUserOrganizations()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [user])
+
+  useEffect(() => {
+    let isMounted = true
+    const controller = new AbortController()
+
+    async function fetchProducts() {
+      if (!user || !selectedOrg) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        // Get catalogs for the selected organization
+        const catalogsResult = await pb.collection("danusin_catalog").getList(1, 100, {
+          filter: `organization="${selectedOrg}"`,
+          $autoCancel: false,
+        })
+
+        if (!isMounted) return
+
+        if (catalogsResult.items.length === 0) {
+          setProducts([])
+          setLoading(false)
+          return
+        }
+
+        const catalogIds = catalogsResult.items.map((catalog: any) => catalog.id)
+        const catalogIdFilter =
+          catalogIds.length === 1 ? `catalog="${catalogIds[0]}"` : `catalog IN ["${catalogIds.join('","')}"]`
+
+        // Get products for these catalogs
         const productsResult = await pb.collection("danusin_product").getList(1, 50, {
-          filter: `added_by="${user.id}"`,
+          filter: catalogIdFilter,
           expand: "catalog",
+          $autoCancel: false,
         })
 
         if (!isMounted) return
@@ -56,15 +132,15 @@ export default function ProductsPage() {
             ...product,
             image: imageUrl,
             catalog_name: product.expand?.catalog?.name || "Unknown Catalog",
+            organization: selectedOrg,
+            organization_name:
+              organizations.find((org) => org.id === selectedOrg)?.organization_name || "Unknown Organization",
           }
         })
 
         setProducts(processedProducts as unknown as Product[])
-      } catch (error: any) {
-        // Check if this is an auto-cancellation error (can be ignored)
-        if (error.name !== "AbortError" && error.message !== "The request was autocancelled") {
-          console.error("Error fetching products:", error)
-        }
+      } catch (error) {
+        console.error("Error fetching products:", error)
       } finally {
         if (isMounted) {
           setLoading(false)
@@ -72,13 +148,14 @@ export default function ProductsPage() {
       }
     }
 
+    setLoading(true)
     fetchProducts()
 
-    // Cleanup function to prevent setting state after unmount
     return () => {
       isMounted = false
+      controller.abort()
     }
-  }, [user])
+  }, [user, selectedOrg, organizations])
 
   // Filter products based on search query
   const filteredProducts = searchQuery
@@ -90,15 +167,12 @@ export default function ProductsPage() {
       )
     : products
 
-  // Check if user can add products (is a danuser)
-  const canAddProducts = user?.isdanuser
-
   return (
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">Manage your products</p>
+          <p className="text-muted-foreground">Manage your organization's products</p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative">
@@ -110,9 +184,9 @@ export default function ProductsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {canAddProducts && (
+          {organizations.length > 0 && (
             <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link href="/dashboard/products/new">
+              <Link href={`/dashboard/products/new?org=${selectedOrg}`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Link>
@@ -120,6 +194,33 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+
+      {organizations.length > 0 ? (
+        <div className="flex items-center gap-4">
+          <Building2 className="h-5 w-5 text-muted-foreground" />
+          <Select value={selectedOrg} onValueChange={setSelectedOrg}>
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Select an organization" />
+            </SelectTrigger>
+            <SelectContent>
+              {organizations.map((org) => (
+                <SelectItem key={org.id} value={org.id}>
+                  {org.organization_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="p-4">
+            <p className="text-amber-800">You need to create an organization first before you can manage products.</p>
+            <Button asChild className="mt-2 bg-amber-600 hover:bg-amber-700">
+              <Link href="/dashboard/organizations/new">Create Organization</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -146,13 +247,13 @@ export default function ProductsPage() {
           <p className="mb-6 max-w-md text-muted-foreground">
             {searchQuery
               ? "No products match your search criteria. Try a different search term."
-              : canAddProducts
-                ? "Add your first product to start selling."
-                : "You don't have access to any products yet."}
+              : selectedOrg
+                ? "This organization doesn't have any products yet. Add your first product to start selling."
+                : "Select an organization to view its products."}
           </p>
-          {canAddProducts && !searchQuery && (
+          {selectedOrg && !searchQuery && (
             <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link href="/dashboard/products/new">
+              <Link href={`/dashboard/products/new?org=${selectedOrg}`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Link>
@@ -183,10 +284,10 @@ export default function ProductsPage() {
                 </div>
                 <div className="mt-4 flex gap-2">
                   <Button asChild variant="outline" size="sm" className="flex-1">
-                    <Link href={`/dashboard/products/${product.id}`}>View</Link>
+                    <Link href={`/dashboard/products/${product.id}?org=${product.organization}`}>View</Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="flex-1">
-                    <Link href={`/dashboard/products/${product.id}/edit`}>Edit</Link>
+                    <Link href={`/dashboard/products/${product.id}/edit?org=${product.organization}`}>Edit</Link>
                   </Button>
                 </div>
               </CardContent>
