@@ -63,7 +63,7 @@ export default function Footer() {
           </div>
 
           <div className="footer-links">
-            <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
+            <h4 className="text-lg font-semibold mb-2">Follow Us</h4>
             <div className="social-links flex space-x-4">
               <a href="#">
                 <i className="bi bi-twitter-x text-xl"></i>
@@ -84,7 +84,7 @@ export default function Footer() {
         <hr className="my-6 border-gray-700" />
 
         <div className="text-center text-gray-600 text-sm">
-          Powered by
+          Powered by{" "}
           <a href="https://evoptech.com/">
             <span className="text-blue-00 hover:text-blue-500">EVOP.TECH</span>
           </a>

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import emailjs from '@emailjs/browser';
+import { useEffect, useState } from "react";
+import emailjs from "@emailjs/browser";
 
 interface ContactInfo {
   title: string;
@@ -18,34 +18,34 @@ interface FormData {
 
 export default function Contact() {
   const [form, setForm] = useState<FormData>({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
-  const [formStatus, setFormStatus] = useState<string>('');
+  const [formStatus, setFormStatus] = useState<string>("");
 
   const contactInfo: ContactInfo[] = [
     {
-      title: 'Our Location',
-      lines: ['Surabaya', 'Jawa Timur'],
-      icon: 'bi bi-geo-alt',
+      title: "Our Location",
+      lines: ["Surabaya", "Jawa Timur"],
+      icon: "bi bi-geo-alt",
     },
     {
-      title: 'Phone Number',
-      lines: ['0812 - 4911 - 1169', '+62 812 5237 4308'],
-      icon: 'bi bi-telephone',
+      title: "Phone Number",
+      lines: ["+6281249111169"],
+      icon: "bi bi-telephone",
     },
     {
-      title: 'Email Address',
-      lines: ['evoptech@gmail.com'],
-      icon: 'bi bi-envelope',
+      title: "Email Address",
+      lines: ["evoptech@gmail.com"],
+      icon: "bi bi-envelope",
     },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormStatus('loading');
+    setFormStatus("loading");
 
     const templateParams = {
       from_name: form.name,
@@ -56,17 +56,17 @@ export default function Contact() {
 
     emailjs
       .send(
-        'service_7yzw8bg',
-        'template_bd5ukge',
+        "service_7yzw8bg",
+        "template_bd5ukge",
         templateParams,
-        'WVAQjK0ITum1fQ8H4'
+        "WVAQjK0ITum1fQ8H4"
       )
       .then(() => {
-        setFormStatus('success');
-        setForm({ name: '', email: '', subject: '', message: '' });
+        setFormStatus("success");
+        setForm({ name: "", email: "", subject: "", message: "" });
       })
       .catch(() => {
-        setFormStatus('error');
+        setFormStatus("error");
       });
   };
 
@@ -79,20 +79,19 @@ export default function Contact() {
 
   return (
     <section id="contact" className="contact section">
-      <div className="container section-title pt-20" >
+      <div className="container section-title pt-20">
         <h2>Contact</h2>
-        <p>
-          Hubungi kami untuk informasi lebih lanjut atau dukungan terkait kampanye danusan dan layanan Danusin lainnya.
-        </p>
+        <p>Punya pertanyaan atau butuh bantuan? Yuk, langsung hubungi kami!</p>
       </div>
 
-      <div className="container" >
+      <div className="container">
         <div className="row g-4 g-lg-5">
           <div className="col-lg-5">
             <div className="info-box">
-              <h2>Kontak</h2>
+              <h3>Kontak</h3>
               <p>
-                Hubungi kami untuk informasi lebih lanjut atau dukungan terkait kampanye danusan dan layanan Danusin lainnya.
+                Hubungi kami untuk informasi lebih lanjut atau dukungan terkait
+                kampanye danusan dan layanan Danusin lainnya.
               </p>
               {contactInfo.map((info, index) => (
                 <div key={index} className="info-item">
@@ -114,7 +113,8 @@ export default function Contact() {
             <div className="contact-form">
               <h3>Hubungi Kami</h3>
               <p>
-                Kirim pesan Anda, dan tim kami akan segera merespons untuk membantu kebutuhan bisnis Anda.
+                Kirim pesan Anda, dan tim kami akan segera merespons untuk
+                membantu kebutuhan bisnis Anda.
               </p>
               <form onSubmit={handleSubmit} className="php-email-form">
                 <div className="row gy-4">
@@ -163,11 +163,15 @@ export default function Contact() {
                     ></textarea>
                   </div>
                   <div className="col-12 text-center">
-                    {formStatus === 'loading' && <div className="loading">Loading...</div>}
-                    {formStatus === 'error' && (
-                      <div className="error-message">An error occurred. Please try again.</div>
+                    {formStatus === "loading" && (
+                      <div className="loading">Loading...</div>
                     )}
-                    {formStatus === 'success' && (
+                    {formStatus === "error" && (
+                      <div className="error-message">
+                        An error occurred. Please try again.
+                      </div>
+                    )}
+                    {formStatus === "success" && (
                       <div className="sent-message">
                         Your message has been sent. Thank you!
                       </div>
@@ -175,7 +179,7 @@ export default function Contact() {
                     <button
                       type="submit"
                       className="btn"
-                      disabled={formStatus === 'loading'}
+                      disabled={formStatus === "loading"}
                     >
                       Send Message
                     </button>
