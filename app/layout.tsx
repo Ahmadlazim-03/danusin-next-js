@@ -5,6 +5,7 @@ import "./globals.css"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 import ConditionalAssets from "@/components/conditional-assets"
+import { ThemeProvider } from '@/components/theme-provider';
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         {/* Favicon */}
         <link rel="icon" href="/assets/img/favicon.png" />
@@ -35,9 +36,17 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        
         <AuthProvider>
           <ConditionalAssets />
-          <main>{children}</main>
+            <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <main>{children}</main>
+            </ThemeProvider>
           <Toaster />
         </AuthProvider>
       </body>
