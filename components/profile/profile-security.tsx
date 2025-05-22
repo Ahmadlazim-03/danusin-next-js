@@ -10,7 +10,6 @@ import { pb } from "@/lib/pocketbase"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
-// Use the correct collection name
 const USERS_COLLECTION = "danusin_users"
 
 type ProfileSecurityProps = {
@@ -24,9 +23,30 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  // Password strength validation
+  const validatePassword = (password: string) => {
+    const minLength = 8
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumber = /\d/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+
+    return {
+      isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,
+      errors: [
+        password.length < minLength ? "Password must be at least 8 characters long" : "",
+        !hasUpperCase ? "Password must contain at least one uppercase letter" : "",
+        !hasLowerCase ? "Password must contain at least one lowercase letter" : "",
+        !hasNumber ? "Password must contain at least one number" : "",
+        !hasSpecialChar ? "Password must contain at least one special character" : "",
+      ].filter(Boolean),
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate password match
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -36,14 +56,41 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
       return
     }
 
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword)
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Invalid password",
+        description: passwordValidation.errors.join(". "),
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate current password is not empty
+    if (!currentPassword) {
+      toast({
+        title: "Current password required",
+        description: "Please enter your current password",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // First verify the current password
+      // Verify authentication state
+      if (!pb.authStore.isValid) {
+        await pb.collection(USERS_COLLECTION).authRefresh()
+      }
+
+      // Verify current password
       await pb.collection(USERS_COLLECTION).authWithPassword(user.email, currentPassword)
 
-      // Then update the password
+      // Update password
       await pb.collection(USERS_COLLECTION).update(user.id, {
+        oldPassword: currentPassword,
         password: newPassword,
         passwordConfirm: confirmPassword,
       })
@@ -57,11 +104,24 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
         title: "Password updated",
         description: "Your password has been updated successfully",
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating password:", error)
+      let errorMessage = "There was an error updating your password."
+
+      // Handle specific PocketBase errors
+      if (error.status === 400) {
+        errorMessage = "Invalid input. Ensure the new password meets all requirements."
+      } else if (error.status === 401) {
+        errorMessage = "Current password is incorrect. Please try again."
+      } else if (error.status === 403) {
+        errorMessage = "Session expired. Please log in again."
+      } else if (error.data?.data?.password?.message) {
+        errorMessage = `Password error: ${error.data.data.password.message}`
+      }
+
       toast({
         title: "Update failed",
-        description: "There was an error updating your password. Please check your current password.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -91,6 +151,8 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
+            minLength={8}
+            placeholder="At least 8 characters, with uppercase, lowercase, number, and special character"
           />
         </div>
 
@@ -102,6 +164,8 @@ export function ProfileSecurity({ user }: ProfileSecurityProps) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            minLength={8}
+            placeholder="Confirm your new password"
           />
         </div>
       </div>

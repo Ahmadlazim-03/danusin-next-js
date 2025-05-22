@@ -42,6 +42,7 @@
     "@radix-ui/react-tooltip": "1.1.6",
     "aos": "^2.3.4",
     "autoprefixer": "^10.4.20",
+    "cesium": "^1.129.0",
     "chart.js": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

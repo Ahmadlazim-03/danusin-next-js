@@ -4,7 +4,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BarChart3, Building2, Home, LogOut, Map, MapPin, Package } from "lucide-react"
+import { BarChart3, Building2, Home, LogOut, Map, MapPin, Package, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -34,6 +34,11 @@ export const dashboardNavItems = [
     href: "/dashboard/map",
     icon: Map,
   },
+  {
+    title:"Setting",
+    href:"/dashboard/profile",
+    icon: Settings,
+  }
 ]
 
 export function DashboardSidebar() {

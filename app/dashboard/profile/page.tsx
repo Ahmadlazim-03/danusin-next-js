@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
+import { ProfileForm } from "@/components/profile/profile-form"
+import { ProfilePreferences } from "@/components/profile/profile-preferences"
+import { ProfileSecurity } from "@/components/profile/profile-security"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ProfileForm } from "@/components/profile/profile-form"
-import { ProfileSecurity } from "@/components/profile/profile-security"
-import { ProfilePreferences } from "@/components/profile/profile-preferences"
 import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function ProfilePage() {
   const { user } = useAuth()

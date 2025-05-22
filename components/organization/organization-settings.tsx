@@ -64,24 +64,36 @@ export function OrganizationSettings({ organization, userRole }: { organization:
       setIsSaving(false)
     }
   }
-
   const handleDelete = async () => {
     setIsDeleting(true)
-
+  
     try {
+      // Step 1: Fetch and delete related records in danusin_user_organization_roles
+      const relatedRoles = await pb
+        .collection("danusin_user_organization_roles")
+        .getList(1, 50, {
+          filter: `organization = "${organization.id}"`,
+        })
+  
+      // Step 2: Delete each related role record
+      for (const role of relatedRoles.items) {
+        await pb.collection("danusin_user_organization_roles").delete(role.id)
+      }
+  
+      // Step 3: Delete the organization
       await pb.collection("danusin_organization").delete(organization.id)
-
+  
       toast({
         title: "Success",
-        description: "Organization deleted successfully",
+        description: "Organization and related roles deleted successfully",
       })
-
+  
       router.push("/dashboard/organizations")
     } catch (error) {
-      console.error("Error deleting organization:", error)
+      console.error("Error deleting organization or related roles:", error)
       toast({
         title: "Error",
-        description: "Failed to delete organization",
+        description: "Failed to delete organization or related roles",
         variant: "destructive",
       })
       setIsDeleting(false)
