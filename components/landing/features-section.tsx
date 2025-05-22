@@ -1,26 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import Image from 'next/image';
-import AOS from "aos"
+import { useEffect } from "react";
+import Image from "next/image";
+import AOS from "aos";
+import PhoneMockup from "./phoneMockup";
 
 interface Feature {
   title: string;
   description: string;
   icon: string;
 }
-
-const PhoneMockup = () => (
-  <div className="phone-mockup text-center" data-aos="zoom-in" data-aos-delay="300">
-    <Image
-      src="/assets/img/phone-app-screen.webp"
-      alt="Phone Mockup"
-      className="img-fluid"
-      width={200}
-      height={400}
-    />
-  </div>
-);
 
 export default function FeaturesSection() {
   const leftFeatures: Feature[] = [
@@ -65,13 +54,13 @@ export default function FeaturesSection() {
     },
   ];
 
-     useEffect(() => {
-          AOS.init({
-            duration: 400, 
-            easing: "ease-out", 
-            once: true, 
-          })
-        }, [])
+  useEffect(() => {
+    AOS.init({
+      duration: 400,
+      easing: "ease-out",
+      once: true,
+    });
+  }, []);
 
   return (
     <section id="features-2" className="features-2 section">
@@ -83,7 +72,7 @@ export default function FeaturesSection() {
               <div
                 key={index}
                 className={`feature-item text-md-end text-center ${
-                  index < leftFeatures.length - 1 ? 'mb-5 mb-md-5 mb-3' : ''
+                  index < leftFeatures.length - 1 ? "mb-5 mb-md-5 mb-3" : ""
                 }`}
                 data-aos="fade-right"
                 data-aos-delay={100 + index * 100} // Staggered delay: 100, 200, 300 ms
@@ -112,7 +101,7 @@ export default function FeaturesSection() {
               <div
                 key={index}
                 className={`feature-item text-md-start text-center ${
-                  index < rightFeatures.length - 1 ? 'mb-5 mb-md-5 mb-3' : ''
+                  index < rightFeatures.length - 1 ? "mb-5 mb-md-5 mb-3" : ""
                 }`}
                 data-aos="fade-left"
                 data-aos-delay={100 + index * 100} // Staggered delay: 100, 200, 300 ms

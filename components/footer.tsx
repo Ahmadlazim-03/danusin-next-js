@@ -1,85 +1,95 @@
-"use client"
-
-import Link from "next/link"
+import React from "react";
 
 export default function Footer() {
   return (
-    <footer id="footer" className="footer">
-      <div className="container footer-top">
-        <div className="row gy-4">
-          <div className="col-lg-4 col-md-6 footer-about">
-            <Link href="/" className="logo d-flex align-items-center">
-              <span className="sitename">Landing Page</span>
-            </Link>
-            <div className="footer-contact pt-3">
-              <p>Jl. Mojo Kalnggru No. 108</p>
-              <p>Surabaya, Jawa Timur</p>
-              <p className="mt-3">
-                <strong>Phone:</strong> <span>+62 812 3456 7890</span>
-              </p>
-              <p>
-                <strong>Email:</strong> <span>ahmadlazim422@gmail.com</span>
-              </p>
-            </div>
-            <div className="social-links d-flex mt-4">
-              <a href="#"><i className="bi bi-twitter-x"></i></a>
-              <a href="#"><i className="bi bi-facebook"></i></a>
-              <a href="#"><i className="bi bi-instagram"></i></a>
-              <a href="#"><i className="bi bi-linkedin"></i></a>
+    <footer id="footer" className="footer bg-gray-100 py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="footer-about">
+            <a href="/" className="logo flex items-center mb-4">
+              <span className="text-3xl font-bold">Danusin</span>
+            </a>
+            <div className="footer-contact">
+              <strong>Address:</strong>
+              <a
+                href="https://maps.app.goo.gl/B7ZnkkNgdvPJfmEA9"
+                className="text-sm leading-relaxed"
+              >
+                <p className="text-gray-700 hover:text-green-600 mt-2">
+                  Jl. Airlangga No.4 - 6, Airlangga, Kec. Gubeng, Surabaya, Jawa
+                  Timur 60115
+                </p>
+              </a>
             </div>
           </div>
 
-          <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Link Penting</h4>
+          <div className="footer-links">
+            <h4 className="text-lg font-semibold">Contact Us</h4>
             <ul>
-              <li><Link href="#">Beranda</Link></li>
-              <li><Link href="#">Tentang Kami</Link></li>
-              <li><Link href="#">Layanan</Link></li>
-              <li><Link href="#">Syarat Layanan</Link></li>
-              <li><Link href="#">Kebijakan Privasi</Link></li>
+              <li>
+                <strong className="text-gray-700">Phone:</strong>
+              </li>
+              <li>
+                <a href="https://wa.me/+6281249111169">+62 812-4911-1169</a>
+              </li>
+              <li>
+                <strong className="text-gray-700">Email:</strong>
+              </li>
+              <li>
+                <a href="mailto:contact@evop.tech">contact@evop.tech</a>
+              </li>
             </ul>
           </div>
 
-          <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Layanan Kami</h4>
+          <div className="footer-links">
+            <h4 className="text-lg font-semibold">Quick Links</h4>
             <ul>
-              <li><Link href="#">Desain Web</Link></li>
-              <li><Link href="#">Pengembangan Web</Link></li>
-              <li><Link href="#">Manajemen Produk</Link></li>
-              <li><Link href="#">Pemasaran Digital</Link></li>
-              <li><Link href="#">Desain Grafis</Link></li>
+              <li>
+                <a href="/">Home</a>
+              </li>
+              <li>
+                <a href="/about">About us</a>
+              </li>
+              <li>
+                <a href="/features">Features</a>
+              </li>
+              <li>
+                <a href="/contact">Contact</a>
+              </li>
+              <li>
+                <a href="/dashboard">Dashboard</a>
+              </li>
             </ul>
           </div>
 
-          <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Solusi Digital</h4>
-            <ul>
-              <li><Link href="#">Pengembangan Aplikasi</Link></li>
-              <li><Link href="#">Integrasi Sistem</Link></li>
-              <li><Link href="#">Otomatisasi Bisnis</Link></li>
-              <li><Link href="#">Layanan Cloud</Link></li>
-              <li><Link href="#">Keamanan Data</Link></li>
-            </ul>
-          </div>
-
-          <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Informasi</h4>
-            <ul>
-              <li><Link href="#">FAQ</Link></li>
-              <li><Link href="#">Karir</Link></li>
-              <li><Link href="#">Blog</Link></li>
-              <li><Link href="#">Hubungi Kami</Link></li>
-              <li><Link href="#">Bantuan</Link></li>
-            </ul>
+          <div className="footer-links">
+            <h4 className="text-lg font-semibold mb-4">Follow Us</h4>
+            <div className="social-links flex space-x-4">
+              <a href="#">
+                <i className="bi bi-twitter-x text-xl"></i>
+              </a>
+              <a href="#">
+                <i className="bi bi-facebook text-xl"></i>
+              </a>
+              <a href="#">
+                <i className="bi bi-instagram text-xl"></i>
+              </a>
+              <a href="#">
+                <i className="bi bi-linkedin text-xl"></i>
+              </a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="container copyright text-center mt-4">
-        <div className="credits">
-          Dibuat oleh Ahmad Lazim
+        <hr className="my-6 border-gray-700" />
+
+        <div className="text-center text-gray-600 text-sm">
+          Powered by
+          <a href="https://evoptech.com/">
+            <span className="text-blue-00 hover:text-blue-500">EVOP.TECH</span>
+          </a>
         </div>
       </div>
     </footer>
-  )
+  );
 }
