@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
-
+import AOS from "aos"
 
 interface Feature {
   title: string;
@@ -11,7 +11,7 @@ interface Feature {
 }
 
 const PhoneMockup = () => (
-  <div className="phone-mockup text-center">
+  <div className="phone-mockup text-center" data-aos="zoom-in" data-aos-delay="300">
     <Image
       src="/assets/img/phone-app-screen.webp"
       alt="Phone Mockup"
@@ -23,48 +23,55 @@ const PhoneMockup = () => (
 );
 
 export default function FeaturesSection() {
-
   const leftFeatures: Feature[] = [
     {
-      title: 'Use On Any Device',
+      title: "Akses di Semua Perangkat",
       description:
-        'Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; In ac dui quis mi consectetuer lacinia.',
-      icon: 'bi bi-display',
+        "Gunakan Danusin di ponsel, tablet, atau komputer untuk mengelola kampanye danusan Anda kapan saja, di mana saja.",
+      icon: "bi bi-device-ssd",
     },
     {
-      title: 'Feather Icons',
+      title: "Pelacakan Real-Time",
       description:
-        'Phasellus ullamcorper ipsum rutrum nunc nunc nonummy metus vestibulum volutpat sapien arcu sed augue aliquam erat volutpat.',
-      icon: 'bi bi-feather',
+        "Lihat lokasi penjual UMKM secara langsung melalui peta interaktif di aplikasi Danusin.",
+      icon: "bi bi-geo-alt",
     },
     {
-      title: 'Retina Ready',
+      title: "Notifikasi Instan",
       description:
-        'Aenean tellus metus bibendum sed posuere ac mattis non nunc vestibulum fringilla purus sit amet fermentum aenean commodo.',
-      icon: 'bi bi-eye',
+        "Dapatkan pemberitahuan langsung tentang perkembangan kampanye dan aktivitas penjual favorit Anda.",
+      icon: "bi bi-bell",
     },
   ];
 
   const rightFeatures: Feature[] = [
     {
-      title: 'W3c Valid Code',
+      title: "Antarmuka Mudah",
       description:
-        'Donec vitae sapien ut libero venenatis faucibus nullam quis ante etiam sit amet orci eget eros faucibus tincidunt.',
-      icon: 'bi bi-code-square',
+        "Nikmati pengalaman pengguna yang intuitif untuk membuat dan mengelola kampanye dengan cepat dan mudah.",
+      icon: "bi bi-grid",
     },
     {
-      title: 'Fully Responsive',
+      title: "Dukungan Komunitas",
       description:
-        'Maecenas tempus tellus eget condimentum rhoncus sem quam semper libero sit amet adipiscing sem neque sed ipsum.',
-      icon: 'bi bi-phone',
+        "Terhubung dengan pengusaha lain dan pendukung melalui fitur komunitas di aplikasi Danusin.",
+      icon: "bi bi-people",
     },
     {
-      title: 'Browser Compatibility',
+      title: "Analitik Bisnis",
       description:
-        'Nullam dictum felis eu pede mollis pretium integer tincidunt cras dapibus vivamus elementum semper nisi aenean vulputate.',
-      icon: 'bi bi-browser-chrome',
+        "Pantau performa kampanye dan penjualan Anda dengan laporan dan analitik yang mudah dipahami.",
+      icon: "bi bi-graph-up",
     },
   ];
+
+     useEffect(() => {
+          AOS.init({
+            duration: 400, 
+            easing: "ease-out", 
+            once: true, 
+          })
+        }, [])
 
   return (
     <section id="features-2" className="features-2 section">
@@ -75,10 +82,13 @@ export default function FeaturesSection() {
             {leftFeatures.map((feature, index) => (
               <div
                 key={index}
-                className={`feature-item text-end ${index < leftFeatures.length - 1 ? 'mb-5' : ''}`}
-              
+                className={`feature-item text-md-end text-center ${
+                  index < leftFeatures.length - 1 ? 'mb-5 mb-md-5 mb-3' : ''
+                }`}
+                data-aos="fade-right"
+                data-aos-delay={100 + index * 100} // Staggered delay: 100, 200, 300 ms
               >
-                <div className="d-flex align-items-center justify-content-end gap-4">
+                <div className="d-flex align-items-center justify-content-md-end justify-content-center gap-4">
                   <div className="feature-content">
                     <h3>{feature.title}</h3>
                     <p>{feature.description}</p>
@@ -101,10 +111,13 @@ export default function FeaturesSection() {
             {rightFeatures.map((feature, index) => (
               <div
                 key={index}
-                className={`feature-item ${index < rightFeatures.length - 1 ? 'mb-5' : ''}`}
-               
+                className={`feature-item text-md-start text-center ${
+                  index < rightFeatures.length - 1 ? 'mb-5 mb-md-5 mb-3' : ''
+                }`}
+                data-aos="fade-left"
+                data-aos-delay={100 + index * 100} // Staggered delay: 100, 200, 300 ms
               >
-                <div className="d-flex align-items-center gap-4">
+                <div className="d-flex align-items-center justify-content-md-start justify-content-center gap-4">
                   <div className="feature-icon flex-shrink-0">
                     <i className={feature.icon}></i>
                   </div>

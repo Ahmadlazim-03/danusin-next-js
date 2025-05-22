@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import createGlobe from 'cobe';
+import AOS from "aos"
 
 export default function About() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -98,26 +99,38 @@ export default function About() {
     };
   }, []);
 
+   useEffect(() => {
+      AOS.init({
+        duration: 400, 
+        easing: "ease-out", 
+        once: true, 
+      })
+    }, [])
+
   return (
     <section id="about" className="about section">
       <div className="container">
         <div className="row gy-4 align-items-center justify-content-between">
           <div className="col-xl-5">
-            <span className="about-meta">TENTANG KAMI</span>
-            <h2 className="about-title">Memberdayakan UMKM Indonesia</h2>
-            <p className="about-description">
+            <span className="about-meta" data-aos="fade-up" data-aos-delay="100">
+              TENTANG KAMI
+            </span>
+            <h2 className="about-title" data-aos="fade-up" data-aos-delay="200">
+              Memberdayakan UMKM Indonesia
+            </h2>
+            <p className="about-description" data-aos="fade-up" data-aos-delay="300">
               Danusin adalah platform yang menghubungkan pengusaha UMKM dengan pendukung untuk mewujudkan impian bisnis mereka. Kami menyediakan alat untuk memulai kampanye danusan, melacak penjual secara real-time, dan membangun komunitas pengusaha yang kuat di seluruh Indonesia.
             </p>
 
             <div className="row feature-list-wrapper">
-              <div className="col-md-6">
+              <div className="col-md-6" data-aos="fade-up" data-aos-delay="400">
                 <ul className="feature-list">
                   <li><i className="bi bi-check-circle-fill"></i> Mulai kampanye danusan dengan mudah</li>
                   <li><i className="bi bi-check-circle-fill"></i> Lacak penjual aktif di peta real-time</li>
                   <li><i className="bi bi-check-circle-fill"></i> Dukungan untuk berbagai jenis UMKM</li>
                 </ul>
               </div>
-              <div className="col-md-6">
+              <div className="col-md-6" data-aos="fade-up" data-aos-delay="500">
                 <ul className="feature-list">
                   <li><i className="bi bi-check-circle-fill"></i> Kolaborasi dengan organisasi terpercaya</li>
                   <li><i className="bi bi-check-circle-fill"></i> Komunitas pengusaha yang dinamis</li>
@@ -126,7 +139,7 @@ export default function About() {
               </div>
             </div>
 
-            <div className="info-wrapper">
+            <div className="info-wrapper" data-aos="fade-up" data-aos-delay="600">
               <div className="row gy-4">
                 <div className="col-lg-5">
                   <div className="profile d-flex align-items-center gap-3">
@@ -158,7 +171,7 @@ export default function About() {
             </div>
           </div>
 
-          <div className="col-xl-6" >
+          <div className="col-xl-5" data-aos="fade-left" data-aos-delay="700">
             <div className="image-wrapper">
               <div className="images position-relative globe-container">
                 <canvas

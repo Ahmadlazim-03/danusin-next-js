@@ -1,17 +1,25 @@
-'use client';
+"use client"
 
-import { useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import AOS from "aos"
 
 export default function Hero() {
+  useEffect(() => {
+    AOS.init({
+      duration: 400, 
+      easing: "ease-out", 
+      once: true, 
+    })
+  }, [])
 
   return (
     <section id="hero" className="hero section">
       <div className="container">
         <div className="row align-items-center">
           <div className="col-lg-6">
-            <div className="hero-content">
+            <div className="hero-content" data-aos="fade-up" data-aos-delay="0">
               <div className="company-badge mb-4">
                 <i className="bi bi-gear-fill me-2"></i>
                 Memberdayakan Pengusaha
@@ -40,7 +48,7 @@ export default function Hero() {
           </div>
 
           <div className="col-lg-6">
-            <div className="hero-image">
+            <div className="hero-image" data-aos="fade-up" data-aos-delay="200">
               <Image
                 src="/assets/img/illustration-1.webp"
                 alt="Ilustrasi Platform Danusin"
@@ -66,7 +74,7 @@ export default function Hero() {
 
         <div className="row stats-row gy-4 mt-5">
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
               <div className="stat-icon">
                 <i className="bi bi-trophy"></i>
               </div>
@@ -77,7 +85,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
               <div className="stat-icon">
                 <i className="bi bi-geo-alt"></i>
               </div>
@@ -88,7 +96,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
               <div className="stat-icon">
                 <i className="bi bi-people"></i>
               </div>
@@ -99,7 +107,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
               <div className="stat-icon">
                 <i className="bi bi-currency-dollar"></i>
               </div>
@@ -112,5 +120,5 @@ export default function Hero() {
         </div>
       </div>
     </section>
-  );
+  )
 }

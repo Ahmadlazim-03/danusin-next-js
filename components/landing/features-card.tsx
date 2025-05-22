@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import AOS from "aos"
 
 interface FeatureCard {
   title: string;
@@ -10,7 +11,6 @@ interface FeatureCard {
 }
 
 export default function FeaturesCards() {
-
   const featureCards: FeatureCard[] = [
     {
       title: 'Kampanye Danusan',
@@ -38,6 +38,14 @@ export default function FeaturesCards() {
     },
   ];
 
+    useEffect(() => {
+      AOS.init({
+        duration: 400, 
+        easing: "ease-out", 
+        once: true, 
+      })
+    }, [])
+
   return (
     <section id="features-cards" className="features-cards section">
       <div className="container">
@@ -46,6 +54,8 @@ export default function FeaturesCards() {
             <div
               key={index}
               className="col-xl-3 col-md-6"
+              data-aos="zoom-in"
+              data-aos-delay={100 + index * 100} // Staggered delay: 100, 200, 300, 400 ms
             >
               <div className={`feature-box ${card.color}`}>
                 <i className={card.icon}></i>

@@ -44,8 +44,6 @@ export default function Header() {
                 Contact
               </Link>
             </li>
-    
-
           </ul>
           <i
             className={`mobile-nav-toggle d-xl-none bi ${isMobileNavOpen ? "bi-x" : "bi-list"}`}
@@ -54,11 +52,12 @@ export default function Header() {
         </nav>
 
         <div className="d-flex align-items-center">
-          <Link className="btn-getstarted" href="/login">
+          <Link className="btn-shiny" href="/login">
             Get Started
           </Link>
         </div>
       </div>
+
     </header>
   )
 }

@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import AOS from "aos"
 
 interface Tab {
   id: string;
@@ -68,15 +68,23 @@ export default function Features() {
     },
   ];
 
+     useEffect(() => {
+        AOS.init({
+          duration: 400, 
+          easing: "ease-out", 
+          once: true, 
+        })
+      }, [])
+
   return (
     <section id="features" className="features section">
-      <div className="container section-title">
+      <div className="container section-title" data-aos="fade-up" data-aos-delay="100">
         <h2>Fitur</h2>
         <p>Jelajahi fitur-fitur unggulan Danusin yang mendukung kesuksesan UMKM Anda</p>
       </div>
 
       <div className="container">
-        <div className="d-flex justify-content-center">
+        <div className="d-flex justify-content-center" data-aos="fade-up" data-aos-delay="200">
           <ul className="nav nav-tabs">
             {tabs.map((tab) => (
               <li key={tab.id} className="nav-item">
@@ -101,24 +109,34 @@ export default function Features() {
               id={tab.id}
             >
               <div className="row">
-                <div className="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center">
+                <div
+                  className="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center"
+                  data-aos="fade-up"
+                  data-aos-delay="300"
+                >
                   <h3>{tab.content.title}</h3>
                   {tab.content.description && (
                     <p className="fst-italic">{tab.content.description}</p>
                   )}
                   <ul>
                     {tab.content.list.map((item, i) => (
-                      <li key={i}>
+                      <li key={i} data-aos="fade-up" data-aos-delay={400 + i * 100}>
                         <i className="bi bi-check2-all"></i>
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
                   {tab.content.footer && (
-                    <p className="fst-italic">{tab.content.footer}</p>
+                    <p className="fst-italic" data-aos="fade-up" data-aos-delay="700">
+                      {tab.content.footer}
+                    </p>
                   )}
                 </div>
-                <div className="col-lg-6 order-1 order-lg-2 text-center">
+                <div
+                  className="col-lg-6 order-1 order-lg-2 text-center"
+                  data-aos="fade-left"
+                  data-aos-delay="800"
+                >
                   <Image
                     src={tab.content.image}
                     alt={tab.title}
