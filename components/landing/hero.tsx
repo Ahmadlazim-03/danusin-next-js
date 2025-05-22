@@ -19,7 +19,7 @@ export default function Hero() {
       <div className="container">
         <div className="row align-items-center">
           <div className="col-lg-6">
-            <div className="hero-content" data-aos="fade-up" data-aos-delay="0">
+            <div className="hero-content" data-aos="fade-up" data-aos-delay="100">
               <div className="company-badge mb-4">
                 <i className="bi bi-gear-fill me-2"></i>
                 Memberdayakan Pengusaha
@@ -74,7 +74,7 @@ export default function Hero() {
 
         <div className="row stats-row gy-4 mt-5">
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="50">
               <div className="stat-icon">
                 <i className="bi bi-trophy"></i>
               </div>
@@ -85,7 +85,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="50">
               <div className="stat-icon">
                 <i className="bi bi-geo-alt"></i>
               </div>
@@ -96,7 +96,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="50">
               <div className="stat-icon">
                 <i className="bi bi-people"></i>
               </div>
@@ -107,7 +107,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="col-lg-3 col-md-6">
-            <div className="stat-item" data-aos="fade-up" data-aos-delay="100">
+            <div className="stat-item" data-aos="fade-up" data-aos-delay="50">
               <div className="stat-icon">
                 <i className="bi bi-currency-dollar"></i>
               </div>
