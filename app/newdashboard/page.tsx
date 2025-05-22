@@ -1,3 +1,4 @@
+
 import { Zap, Award, Tag, Percent, Flame, TrendingUp, Trophy, Sparkles, Gamepad2, Clock, ChevronDown } from "lucide-react";
 import { AnimatedBackground } from "@/components/animated-background";
 import { Header } from "@/components/newdashboard/Header";
@@ -8,7 +9,6 @@ import { SpecialOffers } from "@/components/newdashboard/SpecialOffers";
 import { Categories } from "@/components/newdashboard/Categories";
 import { RecentlyUpdated } from "@/components/newdashboard/RecentlyUpdated";
 import { LiveStreams } from "@/components/newdashboard/LiveStream";
-import { Footer } from "@/components/newdashboard/Footer";
 
 export default function Home() {
   const featuredGames = [
@@ -144,7 +144,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white">
+     <div className="min-h-screen bg-white text-zinc-900 dark:bg-gradient-to-b dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 dark:text-white">
       <AnimatedBackground />
       <Header />
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">

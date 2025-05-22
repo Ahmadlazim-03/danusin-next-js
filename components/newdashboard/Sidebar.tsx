@@ -7,53 +7,77 @@ export function Sidebar() {
   return (
     <aside className="hidden md:block w-56 shrink-0">
       <div className="space-y-6">
-        <div className="bg-zinc-800/50 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50">
-          <h3 className="font-medium text-emerald-400 mb-3 flex items-center">
-            <Flame className="mr-2 h-4 w-4" />
-            DISCOVER
+        
+        {/* Bagian DISCOVER */}
+        <div className="bg-white/80 backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg 
+                        rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50 
+                        shadow-sm hover:shadow-lg transition-all duration-300">
+          <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 
+                         mb-3.5 flex items-center text-[0.8rem] uppercase tracking-wider">
+            <Flame className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+            Discover
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {[
-              { label: "New & Noteworthy", icon: <Zap className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-300" /> },
-              { label: "Top Sellers", icon: <Award className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-300" /> },
-              { label: "Upcoming", icon: <Clock className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-300" /> },
-              { label: "Special Offers", icon: <Percent className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-300" /> },
-              { label: "VR Games", icon: <Gamepad2 className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform duration-300" /> },
-            ].map((item) => (
-              <li key={item.label}>
-                <Link
-                  href="#"
-                  className="flex items-center text-white hover:text-emerald-400 transition-colors duration-300 group"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            ))}
+              { label: "New & Noteworthy", icon: Zap },
+              { label: "Top Sellers", icon: Award },
+              { label: "Upcoming", icon: Clock },
+              { label: "Special Offers", icon: Percent },
+              { label: "VR Games", icon: Gamepad2 },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.label}>
+                  <Link
+                    href="#" // Ganti dengan path yang sesuai
+                    className="flex items-center p-2 rounded-md transition-all duration-200 group 
+                               text-neutral-600 dark:text-zinc-300 
+                               hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70 
+                               hover:text-emerald-600 dark:hover:text-emerald-300"
+                  >
+                    <Icon className="mr-2.5 h-4 w-4 text-neutral-400 dark:text-zinc-400 
+                                   group-hover:text-emerald-500 dark:group-hover:text-emerald-300 
+                                   transition-colors duration-200 group-hover:scale-110" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
-        <div className="bg-zinc-800/50 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50">
-          <h3 className="font-medium text-emerald-400 mb-3 flex items-center">
-            <Tag className="mr-2 h-4 w-4" />
-            CATEGORIES
+        {/* Bagian CATEGORIES */}
+        <div className="bg-white/80 backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg
+                        rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50 
+                        shadow-sm hover:shadow-lg transition-all duration-300">
+          <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 
+                         mb-3.5 flex items-center text-[0.8rem] uppercase tracking-wider">
+            <Tag className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+            Categories
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {["Action", "Adventure", "RPG", "Strategy", "Simulation"].map((category) => (
               <li key={category}>
                 <Link
-                  href="#"
-                  className="flex items-center justify-between text-zinc-400 hover:text-white transition-colors duration-300 group"
+                  href="#" // Ganti dengan path yang sesuai
+                  className="flex items-center justify-between p-2 rounded-md transition-all duration-200 group 
+                             text-neutral-600 dark:text-zinc-400 
+                             hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70 
+                             hover:text-emerald-600 dark:hover:text-white"
                 >
-                  <span>{category}</span>
-                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                  <span className="text-xs font-medium">{category}</span>
+                  <ChevronRight className="h-4 w-4 text-neutral-400 dark:text-zinc-500 
+                                         group-hover:text-emerald-500 dark:group-hover:text-emerald-400 
+                                         group-hover:translate-x-0.5 transition-all duration-200 opacity-70 group-hover:opacity-100" />
                 </Link>
               </li>
             ))}
-            <li>
+            <li className="pt-1">
               <Button
                 variant="link"
-                className="text-emerald-400 p-0 h-auto hover:text-emerald-300 transition-colors duration-300"
+                className="text-emerald-600 dark:text-emerald-400 
+                           p-0 h-auto hover:text-emerald-700 dark:hover:text-emerald-300 
+                           transition-colors duration-200 text-xs font-medium"
               >
                 View all categories
               </Button>
@@ -61,17 +85,27 @@ export function Sidebar() {
           </ul>
         </div>
 
-        <div className="bg-zinc-800/50 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50">
-          <h3 className="font-medium text-emerald-400 mb-3 flex items-center">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            TRENDING TAGS
+        {/* Bagian TRENDING TAGS */}
+        <div className="bg-white/80 backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg
+                        rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50 
+                        shadow-sm hover:shadow-lg transition-all duration-300">
+          <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 
+                         mb-3.5 flex items-center text-[0.8rem] uppercase tracking-wider">
+            <TrendingUp className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+            Trending Tags
           </h3>
           <div className="flex flex-wrap gap-2">
             {["Open World", "RPG", "Souls-like", "FPS", "Multiplayer", "Roguelike", "Survival"].map(
               (tag, index) => (
                 <Badge
                   key={index}
-                  className="bg-zinc-700/50 hover:bg-emerald-500 transition-colors duration-300 cursor-pointer py-1 px-2 text-sm"
+                  variant="outline" // Menggunakan variant outline agar border lebih terlihat
+                  className="border-emerald-300/70 bg-emerald-50/70 text-emerald-700 
+                             dark:border-zinc-600 dark:bg-zinc-700/50 dark:text-zinc-200 
+                             hover:bg-emerald-100/80 dark:hover:bg-zinc-600/70
+                             hover:border-emerald-400/70 dark:hover:border-zinc-500
+                             transition-colors duration-200 cursor-pointer 
+                             py-0.5 px-2.5 text-[0.7rem] font-medium rounded-full" // Dibuat pill-shaped
                 >
                   {tag}
                 </Badge>
