@@ -187,7 +187,7 @@ export default function Home() {
 
   return (
     
-          <main className="flex-1 md:ml-64">
+          <main >
             <HeroCarousel />
             <FeaturedGames games={featuredGames} />
             <SpecialOffers offers={specialOffers} />

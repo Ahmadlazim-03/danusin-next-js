@@ -19,7 +19,7 @@ export default function ProfileLayout({
           <aside className="hidden md:block w-56 shrink-0 fixed top-21 h-[calc(100vh-4rem)] overflow-y-auto pr-4">
             <Sidebar />
           </aside>
-      <main className="w-full">{children}</main>
+      <main className="w-full flex-1 md:ml-64">{children}</main>
       </div>
       </div>
     </div>

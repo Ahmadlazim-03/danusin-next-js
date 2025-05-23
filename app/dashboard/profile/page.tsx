@@ -21,14 +21,14 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="md:ml-64 flex h-screen items-center justify-center">
+      <main className=" h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
       </main>
     )
   }
 
   return (
-    <main className="flex-1 md:ml-64">
+    <main >
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-muted-foreground">Manage your account settings and preferences</p>
