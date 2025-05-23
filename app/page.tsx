@@ -2,19 +2,17 @@ import Footer from "@/components/footer";
 import Cta from "@/components/landing/cta";
 import Faq from "@/components/landing/faq";
 import Hero from "@/components/landing/hero";
-
 import { AnimatedBackground } from "@/components/animated-background";
-import { Header } from "@/components/newdashboard/Header";
+import Header from "@/components/header";
 
 export default async function Home() {
   return (
     <main className="main">
      <AnimatedBackground />
-      <Header />
-     
+        <Header />
         <Hero />
-      <Cta />
-      <Faq />
+        <Cta />
+        <Faq />
     <Footer />
     </main>
   )
