@@ -140,7 +140,7 @@ export function L7MapViewer({
       console.warn("[L7MapViewer] Scene exists but map not loaded. This might be a recovery from a failed attempt or StrictMode. Will try to proceed.");
       // If a scene object exists but map isn't loaded, it might be from a failed init.
       // Destroying it before retrying might be safer.
-      if (!sceneRef.current.destroyed) {
+      if (!sceneRef.current.destroy) {
         sceneRef.current.destroy();
       }
       sceneRef.current = null;

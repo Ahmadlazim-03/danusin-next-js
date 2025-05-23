@@ -1,15 +1,15 @@
 // File: @/components/mobile-menu.tsx
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Menu, X, ChevronRight, Zap, Award, Clock, Percent, Gamepad2, User, Heart, ShoppingCart, Bell } from "lucide-react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { RecordModel } from "pocketbase" // Impor RecordModel
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Bell, ChevronRight, Flame, Heart, LayoutDashboard, Map, Menu, ShoppingCart, Telescope, Users } from "lucide-react"
+import Link from "next/link"
+import type { RecordModel } from "pocketbase"; // Impor RecordModel
+import { useEffect, useState } from "react"
 
 interface MobileMenuProps {
   currentUser?: RecordModel | null;
@@ -141,12 +141,13 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-zinc-500">Discover</h3>
             <ul className="space-y-1">
               {[
-                { label: "New & Noteworthy", icon: Zap, href: "/new" },
-                { label: "Top Sellers", icon: Award, href: "/topsellers" },
-                { label: "Upcoming", icon: Clock, href: "/upcoming" },
-                { label: "Special Offers", icon: Percent, href: "/offers" },
-                { label: "VR Games", icon: Gamepad2, href: "/vr" },
-              ].map((item) => {
+                   { label: "Explore", icon: Telescope ,href:""},
+                   { label: "Your Dashboard", icon: LayoutDashboard,href:"" },
+                   { label: "Organization", icon: Users,href:"" },
+                   { label: "Trends", icon: Flame ,href:""},
+                   { label: "Map Explorer", icon: Map ,href:""},
+                
+                  ].map((item) => {
                 const Icon = item.icon;
                 return (
                 <li key={item.label}>

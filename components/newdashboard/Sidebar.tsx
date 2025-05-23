@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Flame, Zap, Award, Clock, Percent, Gamepad2, ChevronRight, Tag, TrendingUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronRight, Flame, LayoutDashboard, Map, Tag, Telescope, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
 
 export function Sidebar() {
   return (
@@ -9,21 +9,21 @@ export function Sidebar() {
       <div className="space-y-6">
         
         {/* Bagian DISCOVER */}
-        <div className="bg-white/80 backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg 
+        <div className="bg-emerald-100/80 bg-gradi backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg 
                         rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50 
                         shadow-sm hover:shadow-lg transition-all duration-300">
           <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 
                          mb-3.5 flex items-center text-[0.8rem] uppercase tracking-wider">
-            <Flame className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+            <Telescope className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             Discover
           </h3>
           <ul className="space-y-1">
             {[
-              { label: "New & Noteworthy", icon: Zap },
-              { label: "Top Sellers", icon: Award },
-              { label: "Upcoming", icon: Clock },
-              { label: "Special Offers", icon: Percent },
-              { label: "VR Games", icon: Gamepad2 },
+              { label: "Explore", icon: Telescope },
+              { label: "Your Dashboard", icon: LayoutDashboard },
+              { label: "Organization", icon: Users },
+              { label: "Trends", icon: Flame },
+              { label: "Map Explorer", icon: Map },
             ].map((item) => {
               const Icon = item.icon;
               return (

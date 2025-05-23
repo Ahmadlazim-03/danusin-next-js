@@ -10,268 +10,244 @@ import { useEffect, useRef, useState } from "react";
 interface LocationPoint {
   lon: number;
   lat: number;
-  value?: number; // Optional: for cylinder height or other visual scaling
-  [key: string]: any; // Allow other properties for popups etc.
+  value?: number; 
+  [key: string]: any; 
 }
 
 interface DanuserMarkerData extends LocationPoint {
   id: string;
   name: string;
   isCurrentUser?: boolean;
+  isActive?: boolean; 
 }
 
 interface DanusinL7MapProps {
-  currentUserMapLocation: DanuserMarkerData | null; // Current user's location to display
-  otherUsersLocations: DanuserMarkerData[];      // Other users' locations
-  isSharing: boolean; // To style current user marker differently
-  onMarkerClick?: (markerData: DanuserMarkerData) => void;
-  initialCenter?: [number, number]; // Optional: [lon, lat]
+  currentUserMapLocation: DanuserMarkerData | null; 
+  otherUsersLocations: DanuserMarkerData[];      
+  isSharing: boolean; 
+  // onMarkerClick prop is no longer strictly needed if the large card is removed,
+  // but we can keep it for potential future use or pass null if it's fully deprecated.
+  // For now, we will not call it to prevent the large card.
+  onMarkerClick?: (markerData: DanuserMarkerData) => void; 
+  initialCenter?: [number, number]; 
   initialZoom?: number;
 }
 
 const MAPBOX_TOKEN = "pk.eyJ1IjoiYWhtYWRsYXppbSIsImEiOiJjbWFudjJscDMwMGJjMmpvcXdja29vN2h6In0.lbl0E3ixhWKnKuQ5T1aQcw";
-const MAP_LOAD_TIMEOUT_MS = 25000; // 25 seconds
+const MAP_LOAD_TIMEOUT_MS = 25000; 
+
+const pinSvgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="36px" height="36px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>`;
+const pinSvgDataUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(pinSvgIcon)}`;
+
 
 export function DanusinL7Map({
   currentUserMapLocation,
   otherUsersLocations,
   isSharing,
-  onMarkerClick,
+  onMarkerClick, // Kept in props, but won't be called to prevent large card
   initialCenter: propInitialCenter,
   initialZoom: propInitialZoom,
 }: DanusinL7MapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene | null>(null);
-  const mapboxMapInstanceRef = useRef<any>(null); // For Mapbox GL JS instance
+  const mapboxMapInstanceRef = useRef<any>(null); 
   const userPointLayerRef = useRef<PointLayer | null>(null);
   const othersPointLayerRef = useRef<PointLayer | null>(null);
-  const currentPopupRef = useRef<Popup | null>(null);
+  const currentL7PopupRef = useRef<Popup | null>(null); 
   const loadTimeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [isMapEngineReady, setIsMapEngineReady] = useState(false); // Tracks if L7 scene is loaded
+  const [isMapEngineReady, setIsMapEngineReady] = useState(false); 
   const [mapError, setMapError] = useState<string | null>(null);
   const [internalLoadingMessage, setInternalLoadingMessage] = useState<string>("Initializing Danusin Map...");
 
-
-  // Default center to Surabaya, Indonesia if not provided
-  const SURABAYA_COORDS: [number, number] = [112.7521, -7.2575];
+  const SURABAYA_COORDS: [number, number] = [112.7521, -7.2575]; 
 
   useEffect(() => {
     console.log("[DanusinL7Map] Initialization effect triggered.");
-
     if (!mapContainerRef.current) {
-      console.error("[DanusinL7Map] mapContainerRef.current is null during effect. This should not happen if div is always rendered.");
-      // This error implies a deeper issue if the div isn't available after first render.
-      setMapError("Map container element not found in DOM. Critical render issue.");
-      return;
+      setMapError("Map container element not found."); return;
     }
     if (mapContainerRef.current.offsetWidth === 0 || mapContainerRef.current.offsetHeight === 0) {
-      console.error("[DanusinL7Map] Map container has zero dimensions.");
-      setMapError("Map container has no dimensions. Ensure parent provides space and CSS (mapbox-gl.css) is loaded.");
-      return;
+      setMapError("Map container has no dimensions."); return;
+    }
+    if (sceneRef.current && isMapEngineReady) {
+      console.log("[DanusinL7Map] Map engine already ready."); return;
+    }
+    if (sceneRef.current && !isMapEngineReady) {
+      console.warn("[DanusinL7Map] Scene exists but map not ready. Destroying old scene.");
+      if (!sceneRef.current.destroyed) sceneRef.current.destroy();
+      sceneRef.current = null;
     }
     
-    // If scene exists and map is already loaded, do nothing.
-    // If scene exists but map not loaded, destroy and re-init (handles StrictMode or failed previous attempts).
-    if (sceneRef.current) {
-        if (isMapEngineReady) {
-            console.log("[DanusinL7Map] Map already initialized and loaded.");
-            return;
-        } else {
-            console.warn("[DanusinL7Map] Scene exists but map not marked loaded. Destroying old scene before re-init.");
-            if (!sceneRef.current.destroyed) sceneRef.current.destroy();
-            sceneRef.current = null;
-        }
-    }
-    
-    setIsMapEngineReady(false); // Set to false before attempting to load
-    setMapError(null);
+    setIsMapEngineReady(false); setMapError(null);
     setInternalLoadingMessage("Initializing Map Engine...");
-    console.log("[DanusinL7Map] Starting map initialization...");
 
     loadTimeoutIdRef.current = setTimeout(() => {
-      // Check if still not loaded and component is mounted (mapContainerRef.current exists)
-      if (!isMapEngineReady && mapContainerRef.current) {
-        console.error("[DanusinL7Map] Map loading timed out.");
-        setMapError("Map loading timed out. Check network, token, and container visibility.");
+      if (!isMapEngineReady && mapContainerRef.current) { 
+        setMapError("Map loading timed out.");
         setInternalLoadingMessage("Map loading failed (timeout).");
       }
     }, MAP_LOAD_TIMEOUT_MS);
 
     const center = propInitialCenter || (currentUserMapLocation ? [currentUserMapLocation.lon, currentUserMapLocation.lat] : SURABAYA_COORDS);
     const zoom = propInitialZoom || (currentUserMapLocation ? 14 : 10);
-    
     let sceneInstance: Scene | null = null;
 
     try {
       sceneInstance = new Scene({
-        id: mapContainerRef.current!, // mapContainerRef is checked to be non-null
-        map: new Mapbox({
-          style: "mapbox://styles/mapbox/streets-v11",
-          center: center,
-          pitch: 45, 
-          zoom: zoom,
-          token: MAPBOX_TOKEN,
-        }),
+        id: mapContainerRef.current!, 
+        map: new Mapbox({ style: "mapbox://styles/mapbox/streets-v11", center, pitch: 45, zoom, token: MAPBOX_TOKEN }),
         logoVisible: false,
       });
+      sceneInstance.addImage('userPinIcon', pinSvgDataUrl);
 
       sceneInstance.on("loaded", () => {
         console.log("[DanusinL7Map] Scene 'loaded' event fired.");
         if (loadTimeoutIdRef.current) clearTimeout(loadTimeoutIdRef.current);
-        if (!mapContainerRef.current) { 
-            sceneInstance?.destroy();
-            return;
-        }
-        
+        if (!mapContainerRef.current || (sceneRef.current === sceneInstance && isMapEngineReady)) return; 
+        if (!mapContainerRef.current) { sceneInstance?.destroy(); return; }
+
         sceneRef.current = sceneInstance;
-        mapboxMapInstanceRef.current = sceneInstance.getMapService().map;
-        setIsMapEngineReady(true); // Mark engine as ready
-        setMapError(null);
-        setInternalLoadingMessage("Map Ready.");
+        mapboxMapInstanceRef.current = sceneInstance.getMapService().map; 
+        setIsMapEngineReady(true); setMapError(null); setInternalLoadingMessage("Map Ready.");
 
         const mbMap = mapboxMapInstanceRef.current;
         if (mbMap) {
-          mbMap.on('style.load', () => {
-            console.log("[DanusinL7Map] Mapbox style.load event.");
+          mbMap.on('style.load', () => { 
             if (mbMap.getSource('composite') && !mbMap.getLayer('3d-buildings')) {
               mbMap.addLayer({
                 id: '3d-buildings', source: 'composite', 'source-layer': 'building',
                 filter: ['==', 'extrude', 'true'], type: 'fill-extrusion', minzoom: 15,
                 paint: {
-                  'fill-extrusion-color': '#47a82f',
-                  'fill-extrusion-height': ['get', 'height'],
-                  'fill-extrusion-base': ['get', 'min_height'],
+                  'fill-extrusion-color': '#aaa', 
+                  'fill-extrusion-height': ['interpolate',['linear'],['zoom'],15,0,15.05,['get', 'height']],
+                  'fill-extrusion-base': ['interpolate',['linear'],['zoom'],15,0,15.05,['get', 'min_height']],
                   'fill-extrusion-opacity': 0.6,
                 },
               }, 'waterway-label'); 
             }
           });
-          mbMap.on('error', (e: any) => {
-            console.error("[DanusinL7Map] Mapbox GL error:", e.error);
-            setMapError(`Mapbox GL error: ${e.error?.message || 'Unknown'}`);
-            setIsMapEngineReady(false);
-          });
+          mbMap.on('error', (e: any) => { setMapError(`Mapbox GL error: ${e.error?.message || 'Unknown'}`); });
         }
       });
-
-      sceneInstance.on("error", (err) => {
-        console.error("[DanusinL7Map] L7 Scene error:", err);
+      sceneInstance.on("error", (err) => { 
         if (loadTimeoutIdRef.current) clearTimeout(loadTimeoutIdRef.current);
-        setMapError("L7 Scene initialization error. Check console.");
-        setIsMapEngineReady(false);
-        sceneInstance?.destroy(); 
-        sceneRef.current = null;
+        setMapError("L7 Scene initialization error."); setIsMapEngineReady(false);
+        sceneInstance?.destroy(); sceneRef.current = null;
       });
-
     } catch (initError: any) {
-      console.error("[DanusinL7Map] Critical error during new Scene():", initError);
       if (loadTimeoutIdRef.current) clearTimeout(loadTimeoutIdRef.current);
-      setMapError(`Map setup critical error: ${initError.message}`);
-      setIsMapEngineReady(false);
+      setMapError(`Map setup critical error: ${initError.message}`); setIsMapEngineReady(false);
     }
-
     return () => {
-      console.log("[DanusinL7Map] Cleanup map initialization effect.");
       if (loadTimeoutIdRef.current) clearTimeout(loadTimeoutIdRef.current);
-      const sceneToClean = sceneRef.current || sceneInstance;
-      if (sceneToClean && !sceneToClean.destroyed) {
-        sceneToClean.destroy();
-      }
-      sceneRef.current = null;
+      const sceneToClean = sceneRef.current === sceneInstance ? sceneRef.current : sceneInstance;
+      if (sceneToClean && !sceneToClean.destroyed) sceneToClean.destroy();
+      if (sceneRef.current === sceneToClean) sceneRef.current = null;
       mapboxMapInstanceRef.current = null;
-      // setIsMapEngineReady(false); // Do not reset on unmount if already loaded, parent controls overall visibility
     };
-  }, []); // Initialize map only once
+  }, []); 
 
-  // Effect to update current user marker
+  const showL7Popup = (scene: Scene, lngLat: {lng: number, lat: number}, htmlContent: string) => {
+    if (currentL7PopupRef.current) {
+      currentL7PopupRef.current.remove();
+    }
+    const popup = new Popup({
+      closeButton: true, 
+      closeOnClick: false, 
+      offsets: [0, -25] 
+    }).setLnglat(lngLat).setHTML(htmlContent);
+    scene.addPopup(popup);
+    currentL7PopupRef.current = popup;
+  };
+
   useEffect(() => {
-    if (!isMapEngineReady || !sceneRef.current) return;
+    if (!isMapEngineReady || !sceneRef.current || sceneRef.current.destroyed) return;
     const scene = sceneRef.current;
 
     if (userPointLayerRef.current) {
-      try { scene.removeLayer(userPointLayerRef.current); } catch (e) { /* ignore */ }
-      userPointLayerRef.current = null;
+      try { if(scene.getLayer(userPointLayerRef.current.id)) scene.removeLayer(userPointLayerRef.current); } 
+      catch (e) { console.warn("Error removing old user layer:", e); }
+      userPointLayerRef.current.destroy(); userPointLayerRef.current = null;
     }
 
     if (currentUserMapLocation) {
       const layer = new PointLayer({})
         .source([currentUserMapLocation], { parser: { type: "json", x: "lon", y: "lat" } })
-        .shape("circle")
-        .size(isSharing ? 12 : 10)
-        .color(isSharing ? "#09ff78" : "#cea786") 
-        .style({ opacity: 1, stroke: "#FFFFFF", strokeWidth: 2.5 });
+        .shape("circle") .size(isSharing ? 12 : 10) .color(isSharing ? "#2ECC40" : "#FF851B") 
+        .style({ opacity: 1, stroke: "#FFFFFF", strokeWidth: 2.5, strokeOpacity: 0.8 })
+        .active(true);
+
+      layer.on("click", (ev) => { 
+        if (ev.feature && ev.feature.properties && sceneRef.current) {
+          const markerProps = ev.feature.properties as DanuserMarkerData;
+          // onMarkerClick?.(markerProps); // <-- Commented out to prevent large card
+
+          // Show L7 Popup with only the name
+          const popupHtml = `<div style="padding: 5px 10px; font-family: sans-serif; font-size:14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                               <strong>${markerProps.name} (Anda)</strong>
+                             </div>`;
+          showL7Popup(sceneRef.current, ev.lngLat, popupHtml);
+        }
+      });
       scene.addLayer(layer);
       userPointLayerRef.current = layer;
     }
-  }, [isMapEngineReady, currentUserMapLocation, isSharing]);
+  }, [isMapEngineReady, currentUserMapLocation, isSharing, onMarkerClick]); // onMarkerClick kept in deps for consistency, though not called
 
-  // Effect to update other users' markers
   useEffect(() => {
-    if (!isMapEngineReady || !sceneRef.current) return;
+    if (!isMapEngineReady || !sceneRef.current || sceneRef.current.destroyed) return;
     const scene = sceneRef.current;
 
     if (othersPointLayerRef.current) {
-      try { scene.removeLayer(othersPointLayerRef.current); } catch (e) { /* ignore */ }
-      othersPointLayerRef.current = null;
+      try { if(scene.getLayer(othersPointLayerRef.current.id)) scene.removeLayer(othersPointLayerRef.current); }
+      catch (e) { console.warn("Error removing old others layer:", e); }
+      othersPointLayerRef.current.destroy(); othersPointLayerRef.current = null;
     }
-    if (currentPopupRef.current) {
-      currentPopupRef.current.remove();
-      currentPopupRef.current = null;
+    
+    if (currentL7PopupRef.current && currentUserMapLocation && currentL7PopupRef.current.getLnglat()?.lng !== currentUserMapLocation.lon ) {
+        currentL7PopupRef.current.remove();
+        currentL7PopupRef.current = null;
     }
 
-    const validOtherUsers = otherUsersLocations.filter(
-      (user) => user.location && typeof user.location.lat === 'number' && typeof user.location.lon === 'number'
-    );
+    const validOtherUsers = otherUsersLocations.filter(u => typeof u.lat === 'number' && typeof u.lon === 'number');
 
     if (validOtherUsers.length > 0) {
       const layer = new PointLayer({})
-        .source(validOtherUsers, { parser: { type: "json", x: "lon", y: "lat" } })
-        .shape("circle")
-        .size(8)
-        .color("#0074D9") 
-        .style({ opacity: 0.8, stroke: "#FFFFFF", strokeWidth: 1.5 })
-        .active(true);
+        .source(validOtherUsers, { parser: { type: "json", x: "lon", y: "lat", isActive: "isActive" } })
+        .shape('userPinIcon') .size('isActive', (isActive) => isActive ? 28 : 22) 
+        .color('isActive', (isActive) => isActive ? '#0074D9' : '#999999') 
+        .style((feat) => ({ opacity: (feat as DanuserMarkerData).isActive ? 0.95 : 0.60, stroke: (feat as DanuserMarkerData).isActive ? "#FFFFFF" : "#777777", strokeWidth: (feat as DanuserMarkerData).isActive ? 1.5 : 1 }))
+        .active(true); 
 
-      layer.on("click", (ev) => {
-        if (ev.feature && ev.feature.properties) {
-          if (currentPopupRef.current) currentPopupRef.current.remove();
-          const props = ev.feature.properties as DanuserMarkerData;
-          
-          onMarkerClick?.(props); 
+      layer.on("click", (ev) => { 
+        if (ev.feature && ev.feature.properties && sceneRef.current) {
+          const markerProps = ev.feature.properties as DanuserMarkerData;
+          // onMarkerClick?.(markerProps); // <-- Commented out to prevent large card
 
-          const popup = new Popup({ closeButton: true, closeOnClick: true, offsets: [0,0] })
-            .setLnglat(ev.lngLat)
-            .setHTML(`<div style="padding:8px; font-size:13px;"><strong>${props.name}</strong><br/>ID: ${props.id}</div>`);
-          scene.addPopup(popup);
-          currentPopupRef.current = popup;
+          // Show L7 Popup with only the name
+          const popupHtml = `<div style="padding: 5px 10px; font-family: sans-serif; font-size:14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                               <strong>${markerProps.name}</strong>
+                             </div>`;
+          showL7Popup(sceneRef.current, ev.lngLat, popupHtml);
         }
       });
       scene.addLayer(layer);
       othersPointLayerRef.current = layer;
     }
-  }, [isMapEngineReady, otherUsersLocations, onMarkerClick]);
+  }, [isMapEngineReady, otherUsersLocations, onMarkerClick, currentUserMapLocation]); // onMarkerClick kept in deps
 
   return (
-    <div ref={mapContainerRef} className="h-full w-full rounded-lg overflow-hidden bg-gray-200 relative">
-      {/* Display loading or error state as an overlay */}
+    <div ref={mapContainerRef} className="h-full w-full rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
       {!isMapEngineReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/80 backdrop-blur-sm z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/80 dark:bg-gray-700/80 backdrop-blur-sm z-10">
           {mapError ? (
-            <>
-              <AlertTriangle className="h-12 w-12 mb-3 text-red-500" />
-              <h3 className="text-xl font-semibold mb-1 text-red-600">Map Error</h3>
-              <p className="text-center text-sm text-red-500 px-4">{mapError}</p>
-            </>
+            <><AlertTriangle className="h-12 w-12 mb-3 text-red-500" /><h3 className="text-xl font-semibold mb-1 text-red-600 dark:text-red-400">Map Error</h3><p className="text-center text-sm text-red-500 dark:text-red-300 px-4">{mapError}</p></>
           ) : (
-            <>
-              <Loader className="h-10 w-10 animate-spin mb-3 text-blue-500" />
-              <p className="text-lg text-gray-700">{internalLoadingMessage}</p>
-            </>
+            <><Loader className="h-10 w-10 animate-spin mb-3 text-blue-500 dark:text-blue-400" /><p className="text-lg text-gray-700 dark:text-gray-300">{internalLoadingMessage}</p></>
           )}
         </div>
       )}
-      {/* The map will be initialized by L7 inside the div with mapContainerRef once isMapEngineReady is true and layers are added */}
     </div>
   );
 }
