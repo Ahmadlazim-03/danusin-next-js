@@ -12,7 +12,7 @@ const heroGames = [
     title: "Crusader Kings III",
     description:
       "The new core expansion brings a wealth of new features to the acclaimed medieval grand strategy game.",
-    image: "/placeholder.svg?height=600&width=1400", // Ganti dengan path gambar Anda
+    image: "https://www.unpas.ac.id/wp-content/uploads/2018/03/TIRTO-Gedungitb1.jpg", // Ganti dengan path gambar Anda
     tags: ["Strategy", "RPG", "Medieval", "Grand Strategy"],
     price: 49.99,
     discountedPrice: 39.99,
@@ -23,7 +23,7 @@ const heroGames = [
     title: "Elden Ring",
     description:
       "Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between.",
-    image: "/placeholder.svg?height=600&width=1400", // Ganti dengan path gambar Anda
+    image: "https://cdn.antaranews.com/cache/1200x800/2014/03/20140307mg7908.jpg", // Ganti dengan path gambar Anda
     tags: ["Action RPG", "Souls-like", "Open World", "Fantasy"],
     price: 59.99,
     discountedPrice: 59.99,
@@ -34,7 +34,7 @@ const heroGames = [
     title: "Starfield",
     description:
       "Embark on an epic journey through the stars in Bethesda Game Studios' first new universe in over 25 years.",
-    image: "/placeholder.svg?height=600&width=1400", // Ganti dengan path gambar Anda
+    image: "https://um.ac.id/wp-content/uploads/2024/04/3-1536x856-2.jpg", // Ganti dengan path gambar Anda
     tags: ["RPG", "Space", "Open World", "Sci-Fi"],
     price: 69.99,
     discountedPrice: 59.49,

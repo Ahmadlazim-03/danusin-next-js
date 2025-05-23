@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Star, Users } from "lucide-react"
+import { Star, Users, Heart as HeartIcon } from "lucide-react" // Mengganti nama Heart agar tidak konflik
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card" // Asumsi Card dari shadcn/ui
 import { motion } from "framer-motion"
 
 interface GameCardProps {
@@ -21,7 +21,14 @@ interface GameCardProps {
 }
 
 export function GameCard({ game }: GameCardProps) {
+  // isHovered tetap digunakan untuk animasi Framer Motion yang kompleks & glow
   const [isHovered, setIsHovered] = useState(false)
+  // State untuk fill pada ikon hati
+  const [isFavorited, setIsFavorited] = useState(false) // Contoh state, bisa diganti dengan data dari API
+
+  const calculatedDiscountedPrice = game.discount && game.discount > 0 
+    ? game.price * (1 - game.discount / 100) 
+    : game.price;
 
   return (
     <motion.div
@@ -29,102 +36,116 @@ export function GameCard({ game }: GameCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       whileHover={{
-        scale: 1.03,
+        scale: 1.02, // Sedikit lebih halus skala hovernya
         transition: { duration: 0.2 },
       }}
+      className="h-full" // Memastikan motion.div mengisi tinggi parent jika di grid
     >
       <Card
-        className="bg-zinc-800/50 backdrop-blur-sm border-zinc-700/50 overflow-hidden group relative h-full"
+        className="bg-white dark:bg-zinc-800/70 backdrop-blur-sm 
+                   border border-neutral-200/80 dark:border-zinc-700/60 
+                   overflow-hidden group relative h-full transition-shadow duration-300 
+                   hover:shadow-emerald-500/10 dark:hover:shadow-emerald-400/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Glow effect on hover */}
+        {/* Glow effect on hover (gradien di seluruh kartu) */}
         <div
-          className={`absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-0 transition-opacity duration-500 pointer-events-none ${isHovered ? "opacity-100" : ""}`}
+          className={`absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-transparent opacity-0 
+                      group-hover:opacity-100 dark:group-hover:opacity-30 
+                      transition-opacity duration-500 pointer-events-none rounded-lg`}
         />
 
-        {/* Border glow */}
-        <div
-          className={`absolute inset-0 rounded-lg border-2 border-emerald-500/0 transition-all duration-500 ${isHovered ? "border-emerald-500/70 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : ""}`}
-        />
-
+        {/* Border glow - lebih sederhana via Card className hover */}
+        
         <div className="aspect-video relative overflow-hidden">
           <Image
-            src={game.image || "/placeholder.svg"}
+            src={game.image || "/placeholder.svg?height=300&width=500"} // Placeholder lebih generik
             alt={game.title}
             fill
-            className={`object-cover transition-transform duration-700 ${isHovered ? "scale-110" : "scale-100"}`}
+            className="object-cover transition-transform duration-500 group-hover:scale-105" // Efek scale menggunakan group-hover
+            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
           />
 
           {game.discount && game.discount > 0 && (
             <div className="absolute top-2 right-2 z-10">
               <motion.div
                 animate={{
-                  scale: isHovered ? [1, 1.1, 1] : 1,
-                  rotate: isHovered ? [0, -5, 5, 0] : 0,
+                  scale: isHovered ? [1, 1.15, 1] : 1, // Animasi scale tetap dengan isHovered
+                  rotate: isHovered ? [0, -3, 3, -3, 0] : 0,
                 }}
                 transition={{
-                  duration: 0.5,
+                  duration: 0.6,
                   repeat: isHovered ? Number.POSITIVE_INFINITY : 0,
-                  repeatDelay: 2,
+                  repeatDelay: 2.5,
                 }}
               >
-                <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg shadow-emerald-500/20 font-bold">
+                <Badge className="bg-gradient-to-r from-red-500 to-orange-500 dark:from-red-600 dark:to-orange-600 text-white shadow-lg font-bold border-none text-xs px-2.5 py-1">
                   -{game.discount}%
                 </Badge>
               </motion.div>
             </div>
           )}
 
-          {/* Overlay on hover */}
+          {/* Overlay on hover dengan tombol */}
           <div
-            className={`absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/50 to-transparent flex items-end justify-between p-3 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+            className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent 
+                       flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 
+                       transition-opacity duration-300"
           >
-            <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 transition-all duration-300 shadow-lg shadow-emerald-500/20">
-              View Game
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              className="bg-zinc-800/80 border-zinc-700 hover:bg-zinc-700 hover:border-emerald-500 transition-all duration-300"
-            >
-              <motion.div animate={{ scale: isHovered ? [1, 1.2, 1] : 1 }} transition={{ duration: 0.3 }}>
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
+            <div className="flex justify-between items-center">
+                <Button 
+                    size="sm"
+                    className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white 
+                               hover:from-emerald-600 hover:to-cyan-600 
+                               transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 
+                               text-xs px-3 py-1.5 h-auto rounded-md"
                 >
-                  <path
-                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={isHovered ? "fill-rose-500 stroke-rose-500" : ""}
-                  />
-                </svg>
-              </motion.div>
-            </Button>
+                    View Game
+                </Button>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-white/20 dark:bg-zinc-800/70 
+                               border-white/30 dark:border-zinc-700 
+                               text-white dark:text-zinc-300 
+                               hover:bg-white/30 dark:hover:bg-zinc-700 
+                               hover:border-emerald-500/70 dark:hover:border-emerald-500 
+                               hover:text-emerald-500 dark:hover:text-emerald-400
+                               transition-all duration-200 w-8 h-8"
+                    onClick={() => setIsFavorited(!isFavorited)} // Contoh aksi favorit
+                    aria-label="Add to Wishlist"
+                >
+                    <HeartIcon 
+                        className={`w-4 h-4 transition-all ${isFavorited ? "fill-rose-500 stroke-rose-500" : (isHovered ? "stroke-rose-400 dark:stroke-rose-500" : "stroke-current")}`} 
+                    />
+                </Button>
+            </div>
           </div>
         </div>
 
-        <CardContent className="p-3 sm:p-4 relative z-10">
+        <CardContent className="p-3 sm:p-4 relative z-10"> {/* bg dihilangkan, akan mewarisi dari Card */}
           <h3
-            className={`font-semibold text-sm sm:text-base mb-1 transition-colors duration-300 ${isHovered ? "text-emerald-400" : ""}`}
+            className="font-semibold text-sm sm:text-base mb-1 truncate 
+                       text-neutral-800 dark:text-neutral-100 
+                       group-hover:text-emerald-600 dark:group-hover:text-emerald-400 
+                       transition-colors duration-300"
           >
             {game.title}
           </h3>
 
           <div className="flex flex-wrap gap-1 mb-2">
-            {game.tags.slice(0, 2).map((tag, i) => (
+            {game.tags.slice(0, 2).map((tag, i) => ( // Hanya tampilkan 2 tag utama
               <Badge
                 key={i}
                 variant="outline"
-                className={`text-xs border-zinc-600 transition-all duration-300 ${isHovered ? "border-emerald-500/50 bg-emerald-500/10" : ""}`}
+                className="text-[10px] sm:text-xs px-1.5 py-0.5 font-normal
+                           border-neutral-300 dark:border-zinc-600 
+                           text-neutral-600 dark:text-zinc-400 
+                           group-hover:border-emerald-500/40 dark:group-hover:border-emerald-500/50 
+                           group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/10 
+                           group-hover:text-emerald-700 dark:group-hover:text-emerald-400
+                           transition-all duration-300"
               >
                 {tag}
               </Badge>
@@ -132,24 +153,25 @@ export function GameCard({ game }: GameCardProps) {
           </div>
 
           <div className="flex items-center justify-between text-xs sm:text-sm">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 font-semibold 
+                            text-neutral-900 dark:text-white">
               {game.discount && game.discount > 0 ? (
                 <>
-                  <span className="line-through text-zinc-500">${game.price.toFixed(2)}</span>
-                  <span className="font-bold">${(game.price * (1 - game.discount / 100)).toFixed(2)}</span>
+                  <span className="line-through text-neutral-500 dark:text-zinc-500 font-normal text-[11px] sm:text-xs">${game.price.toFixed(2)}</span>
+                  <span>${calculatedDiscountedPrice.toFixed(2)}</span>
                 </>
               ) : (
-                <span className="font-bold">${game.price.toFixed(2)}</span>
+                <span>${game.price.toFixed(2)}</span>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
-                <span>{game.rating}</span>
+              <div className="flex items-center gap-0.5 sm:gap-1 text-neutral-600 dark:text-zinc-300">
+                <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-yellow-400 text-yellow-400" />
+                <span className="text-[11px] sm:text-xs">{game.rating}</span>
               </div>
-              <div className="text-xs text-zinc-400 flex items-center">
-                <Users className="h-3 w-3 mr-1" />
+              <div className="text-[11px] sm:text-xs text-neutral-500 dark:text-zinc-400 flex items-center gap-0.5 sm:gap-1">
+                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 {game.players}
               </div>
             </div>
