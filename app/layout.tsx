@@ -10,8 +10,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Workshop UI Ahmad Lazim",
-  description: "Temukan produk berkualitas dan artikel informatif",
+  title: "Danusin",
+  description: "Danusin - Lacak dan cari dana usaha yang anda inginkan",
   generator: "v0.dev",
 }
 
@@ -49,6 +49,7 @@ export default function RootLayout({
             </ThemeProvider>
           <Toaster />
         </AuthProvider>
+        
       </body>
     </html>
   )

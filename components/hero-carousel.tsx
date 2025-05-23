@@ -4,15 +4,16 @@ import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, PanInfo } from "framer-motion" // Impor PanInfo
 
+// Data heroGames diperbarui sesuai permintaan Anda
 const heroGames = [
   {
     id: 1,
     title: "Crusader Kings III",
     description:
       "The new core expansion brings a wealth of new features to the acclaimed medieval grand strategy game.",
-    image: "https://www.unpas.ac.id/wp-content/uploads/2018/03/TIRTO-Gedungitb1.jpg", // Ganti dengan path gambar Anda
+    image: "https://www.unpas.ac.id/wp-content/uploads/2018/03/TIRTO-Gedungitb1.jpg",
     tags: ["Strategy", "RPG", "Medieval", "Grand Strategy"],
     price: 49.99,
     discountedPrice: 39.99,
@@ -23,7 +24,7 @@ const heroGames = [
     title: "Elden Ring",
     description:
       "Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between.",
-    image: "https://cdn.antaranews.com/cache/1200x800/2014/03/20140307mg7908.jpg", // Ganti dengan path gambar Anda
+    image: "https://cdn.antaranews.com/cache/1200x800/2014/03/20140307mg7908.jpg",
     tags: ["Action RPG", "Souls-like", "Open World", "Fantasy"],
     price: 59.99,
     discountedPrice: 59.99,
@@ -34,7 +35,7 @@ const heroGames = [
     title: "Starfield",
     description:
       "Embark on an epic journey through the stars in Bethesda Game Studios' first new universe in over 25 years.",
-    image: "https://um.ac.id/wp-content/uploads/2024/04/3-1536x856-2.jpg", // Ganti dengan path gambar Anda
+    image: "https://um.ac.id/wp-content/uploads/2024/04/3-1536x856-2.jpg",
     tags: ["RPG", "Space", "Open World", "Sci-Fi"],
     price: 69.99,
     discountedPrice: 59.49,
@@ -42,20 +43,26 @@ const heroGames = [
   },
 ]
 
+const swipeThreshold = 50; // Jarak minimum (dalam px) untuk dianggap swipe
+
 export function HeroCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
-  const [direction, setDirection] = useState(0)
+  const [direction, setDirection] = useState(0) 
 
-  const nextSlide = () => {
-    setDirection(1)
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % heroGames.length)
-  }
+  const changeSlide = (newDirection: number) => {
+    let newIndex = currentIndex + newDirection;
+    if (newIndex < 0) {
+      newIndex = heroGames.length - 1;
+    } else if (newIndex >= heroGames.length) {
+      newIndex = 0;
+    }
+    setDirection(newDirection);
+    setCurrentIndex(newIndex);
+  };
 
-  const prevSlide = () => {
-    setDirection(-1)
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + heroGames.length) % heroGames.length)
-  }
+  const nextSlide = () => changeSlide(1);
+  const prevSlide = () => changeSlide(-1);
 
   useEffect(() => {
     if (!isHovered) {
@@ -92,9 +99,19 @@ export function HeroCarousel() {
     }),
   }
 
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const { offset } = info; // Velocity juga tersedia di info jika diperlukan
+    
+    if (offset.x < -swipeThreshold) { 
+      nextSlide();
+    } else if (offset.x > swipeThreshold) { 
+      prevSlide();
+    }
+  };
+
   return (
     <div
-      className="mb-6 md:mb-10 relative rounded-xl overflow-hidden shadow-2xl dark:shadow-black/50" 
+      className="mb-6 md:mb-10 relative rounded-xl overflow-hidden shadow-2xl dark:shadow-black/50 cursor-grab active:cursor-grabbing" 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -108,6 +125,10 @@ export function HeroCarousel() {
             animate="center"
             exit="exit"
             className="absolute inset-0"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }} 
+            dragElastic={0.1} 
+            onDragEnd={handleDragEnd}
           >
             <Image
               src={currentGame.image || "/placeholder.svg?height=600&width=1400"}
@@ -115,24 +136,23 @@ export function HeroCarousel() {
               fill
               className="object-cover"
               priority={currentIndex === 0} 
+              draggable="false" 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent 
                             md:bg-gradient-to-r md:from-black/70 md:via-black/20 md:to-transparent 
                             flex flex-col justify-end p-4 py-5 sm:p-6 md:p-7 lg:p-8">
               <div className="max-w-xl lg:max-w-2xl"> 
-                {/* Badge "Featured Game" - Disembunyikan hingga lg, tampil di lg+ */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, duration: 0.5 }} 
-                  className="hidden lg:block" // Diubah dari sm:block ke lg:block
+                  className="hidden lg:block" 
                 >
                   <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-500 mb-2 sm:mb-3 text-xs sm:text-sm px-3 py-1 rounded-full uppercase tracking-wider border-none">
                     Featured Game
                   </Badge>
                 </motion.div>
 
-                {/* Judul Game - Selalu tampil */}
                 <motion.h2
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -142,22 +162,20 @@ export function HeroCarousel() {
                   {currentGame.title}
                 </motion.h2>
 
-                {/* Deskripsi Game - Disembunyikan hingga lg, tampil di lg+ */}
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5, duration: 0.5 }}
-                  className="hidden lg:block text-neutral-200 dark:text-zinc-300 mb-3 sm:mb-4 text-xs sm:text-sm md:text-sm lg:text-base line-clamp-2 md:line-clamp-2 lg:line-clamp-3" // Diubah dari md:block ke lg:block
+                  className="hidden lg:block text-neutral-200 dark:text-zinc-300 mb-3 sm:mb-4 text-xs sm:text-sm md:text-sm lg:text-base line-clamp-2 md:line-clamp-2 lg:line-clamp-3"
                 >
                   {currentGame.description}
                 </motion.p>
 
-                {/* Tags Game - Disembunyikan hingga lg, tampil di lg+ */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6, duration: 0.5 }}
-                  className="hidden lg:flex flex-wrap gap-1 sm:gap-1.5 mb-3 md:mb-3" // Diubah dari md:flex ke lg:flex
+                  className="hidden lg:flex flex-wrap gap-1 sm:gap-1.5 mb-3 md:mb-3" 
                 >
                   {currentGame.tags.map((tag, index) => (
                     <Badge
@@ -172,12 +190,10 @@ export function HeroCarousel() {
                   ))}
                 </motion.div>
 
-                {/* Tombol Buy Now dan Harga - Selalu tampil */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.5 }} // Penyesuaian delay jika elemen di atasnya hilang
-                  // Margin atas disesuaikan: mt-3 untuk xs, sm, md. mt-0 untuk lg+ saat elemen lain muncul.
+                  transition={{ delay: 0.4, duration: 0.5 }} 
                   className="flex items-center gap-2.5 sm:gap-3 md:gap-3 flex-wrap mt-3 lg:mt-0" 
                 >
                   <Button 
@@ -217,14 +233,13 @@ export function HeroCarousel() {
         </AnimatePresence>
       </div>
 
-      {/* Navigation Dots */}
       <div className="absolute bottom-2.5 sm:bottom-3 md:bottom-3.5 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
         {heroGames.map((_, index) => (
           <button
             key={index}
             onClick={() => {
-              setDirection(index > currentIndex ? 1 : -1)
-              setCurrentIndex(index)
+              setDirection(index > currentIndex ? 1 : (index < currentIndex ? -1 : 0));
+              setCurrentIndex(index);
             }}
             className={`w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-2 md:h-2 rounded-full transition-all duration-300 ease-out
                         ${ index === currentIndex 
@@ -236,7 +251,6 @@ export function HeroCarousel() {
         ))}
       </div>
 
-      {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
         className="absolute left-1 sm:left-2 md:left-2.5 top-1/2 transform -translate-y-1/2 
