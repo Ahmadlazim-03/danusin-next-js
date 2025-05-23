@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Flame, LayoutDashboard, Map, Tag, Telescope, TrendingUp, Users } from "lucide-react";
+import { ChevronRight, Flame, LayoutDashboard, Locate, Map, Tag, Telescope, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 
 export function Sidebar() {
@@ -14,22 +14,22 @@ export function Sidebar() {
                         shadow-sm hover:shadow-lg transition-all duration-300">
           <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 
                          mb-3.5 flex items-center text-[0.8rem] uppercase tracking-wider">
-            <Telescope className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+            <Locate className="mr-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
             Discover
           </h3>
           <ul className="space-y-1">
             {[
-              { label: "Explore", icon: Telescope },
-              { label: "Your Dashboard", icon: LayoutDashboard },
-              { label: "Organization", icon: Users },
-              { label: "Trends", icon: Flame },
-              { label: "Map Explorer", icon: Map },
+              { label: "Explore", icon: Telescope , url:"/dashboard"},
+              { label: "Your Dashboard", icon: LayoutDashboard, url:"/explore" },
+              { label: "Organization", icon: Users, url:"/dashboard/organization" },
+              { label: "Trends", icon: Flame, url:"/dashboard/trend" },
+              { label: "Map Explorer", icon: Map, url:"/dashboard/maps" },
             ].map((item) => {
               const Icon = item.icon;
               return (
                 <li key={item.label}>
                   <Link
-                    href="#" // Ganti dengan path yang sesuai
+                    href={item.url} // Ganti dengan path yang sesuai
                     className="flex items-center p-2 rounded-md transition-all duration-200 group 
                                text-neutral-600 dark:text-zinc-300 
                                hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70 

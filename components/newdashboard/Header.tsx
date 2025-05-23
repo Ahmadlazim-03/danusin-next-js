@@ -1,12 +1,7 @@
 "use client";
-import Image from "next/image";
-import Link from "next/link"; // Pastikan Link diimpor
-import { Search, Settings, Bell, LogOut, UserCircle2, ChevronDown, Heart } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileMenu } from "@/components/mobile-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useTheme } from "next-themes";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Bell, ChevronDown, Heart, LogOut, Search, Settings, UserCircle2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import Image from "next/image";
+import Link from "next/link"; // Pastikan Link diimpor
+import { useEffect, useState } from "react";
+
 import PocketBase, { RecordModel } from "pocketbase";
 // Tidak perlu import Button jika hanya untuk ikon tautan
 
@@ -156,7 +157,7 @@ export function Header() {
                    </DropdownMenuLabel>
                    <DropdownMenuSeparator className="bg-neutral-200 dark:bg-zinc-700 h-px my-1" />
                    <DropdownMenuItem asChild className="focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm">
-                     <Link href="/profile" className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer w-full">
+                     <Link href="/dashboard/profile" className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer w-full">
                        <UserCircle2 className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                        <span>My Profile</span>
                      </Link>
