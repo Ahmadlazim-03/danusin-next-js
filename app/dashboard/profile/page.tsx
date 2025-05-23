@@ -21,14 +21,14 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <main className="md:ml-64 flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="container mx-auto space-y-8 p-4 md:p-8">
+    <main className="flex-col md:ml-64 w-full">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-muted-foreground">Manage your account settings and preferences</p>
@@ -74,6 +74,6 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </main>
   )
 }

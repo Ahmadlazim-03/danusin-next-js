@@ -89,7 +89,7 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
                   <div className="font-semibold text-neutral-800 dark:text-neutral-100">
                     {currentUser.username || "User"} 
                   </div>
-                  <Link href="/profile" onClick={closeMenu}>
+                  <Link href="/dashboard/profile" onClick={closeMenu}>
                     <div className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 cursor-pointer">
                         View Profile
                     </div>

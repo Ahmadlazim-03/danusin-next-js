@@ -1,14 +1,11 @@
 
-import { Zap, Award, Tag, Percent, Flame, TrendingUp, Trophy, Sparkles, Gamepad2, Clock, ChevronDown } from "lucide-react";
-import { AnimatedBackground } from "@/components/animated-background";
-import { Header } from "@/components/newdashboard/Header";
-import { Sidebar } from "@/components/newdashboard/Sidebar";
-import { HeroCarousel } from "@/components/hero-carousel"
-import { FeaturedGames } from "@/components/newdashboard/FeaturedGames";
-import { SpecialOffers } from "@/components/newdashboard/SpecialOffers";
+import { HeroCarousel } from "@/components/hero-carousel";
 import { Categories } from "@/components/newdashboard/Categories";
-import { RecentlyUpdated } from "@/components/newdashboard/RecentlyUpdated";
+import { FeaturedGames } from "@/components/newdashboard/FeaturedGames";
 import { LiveStreams } from "@/components/newdashboard/LiveStream";
+import { RecentlyUpdated } from "@/components/newdashboard/RecentlyUpdated";
+import { SpecialOffers } from "@/components/newdashboard/SpecialOffers";
+import { Award, ChevronDown, Gamepad2, Tag, Trophy, Zap } from "lucide-react";
 
 export default function Home() {
   const featuredGames = [
@@ -189,14 +186,7 @@ export default function Home() {
   ];
 
   return (
-     <div className="min-h-screen bg-white text-zinc-900 dark:bg-gradient-to-b dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 dark:text-white">
-      <AnimatedBackground />
-      <Header />
-      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <aside className="hidden md:block w-56 shrink-0 fixed top-21 h-[calc(100vh-4rem)] overflow-y-auto pr-4">
-            <Sidebar />
-          </aside>
+    
           <main className="flex-1 md:ml-64">
             <HeroCarousel />
             <FeaturedGames games={featuredGames} />
@@ -205,8 +195,6 @@ export default function Home() {
             <RecentlyUpdated games={updatedGames} />
             <LiveStreams streams={liveStreams} />
           </main>
-        </div>
-      </div>
-    </div>
+     
   );
 }
