@@ -28,7 +28,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="flex-col md:ml-64 w-full">
+    <main className="flex-1 md:ml-64">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-muted-foreground">Manage your account settings and preferences</p>
