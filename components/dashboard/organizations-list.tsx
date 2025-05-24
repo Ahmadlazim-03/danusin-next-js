@@ -127,7 +127,7 @@ export function OrganizationsList({ showEmpty = false }: { showEmpty?: boolean }
 
   if (loading) {
     return (
-      <Card className="border-green-100 bg-white">
+      <Card className="dark:border-zinc-750/70 bg-white dark:bg-zinc-800/80">
         <CardHeader className="pb-0">
           <h2 className="text-xl font-bold">Your Organizations</h2>
           <p className="text-sm text-muted-foreground">Organizations you manage or are a member of</p>
@@ -154,7 +154,7 @@ export function OrganizationsList({ showEmpty = false }: { showEmpty?: boolean }
   }
 
   return (
-    <Card className="border-green-100 bg-white">
+    <Card className="dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80">
       <CardHeader className="flex flex-row items-start justify-between pb-0">
         <div>
           <h2 className="text-xl font-bold">Your Organizations</h2>
