@@ -3,6 +3,7 @@ import type React from "react";
 import { AnimatedBackground } from "@/components/animated-background";
 import { Header } from "@/components/newdashboard/Header";
 import { Sidebar } from "@/components/newdashboard/Sidebar";
+import { ThemeProvider } from '@/components/theme-provider';
 
 
 export default function ProfileLayout({
@@ -11,6 +12,12 @@ export default function ProfileLayout({
   children: React.ReactNode
 }) {
   return (
+     <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      >
     <div className=" min-h-screen bg-white text-zinc-900 dark:bg-gradient-to-b dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 dark:text-white">
       <AnimatedBackground />
         <Header />
@@ -23,5 +30,6 @@ export default function ProfileLayout({
       </div>
       </div>
     </div>
+    </ThemeProvider>
   )
 }
