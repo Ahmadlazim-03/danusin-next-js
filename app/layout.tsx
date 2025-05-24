@@ -1,15 +1,13 @@
-'use client'; // <-- Menjadikan RootLayout sebagai Komponen Klien
+'use client'; 
 
 import type React from "react";
-// import type { Metadata } from "next"; // Metadata type is no longer needed here
 import { Inter } from "next/font/google";
-import "./globals.css"; // globals.css tetap dimuat untuk semua halaman
+import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 import Script from "next/script";
-import { usePathname } from 'next/navigation'; // <-- Impor usePathname
-import { useEffect } from 'react'; // <-- Impor useEffect jika diperlukan untuk logika yang lebih kompleks
+import { usePathname } from 'next/navigation';
 
 const inter = Inter({ subsets: ["latin"] });
 export default function RootLayout({
@@ -18,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isProfileSection = pathname.startsWith('/dashboard'); 
+  const isProfileSection = pathname.startsWith('/dashboard');
   const globalHeadElements = (
     <>
       <link rel="icon" href="/logo-danusin-hijau.png" />
