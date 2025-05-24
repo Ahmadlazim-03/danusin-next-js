@@ -35,8 +35,8 @@ export function Sidebar() {
           </h3>
           <ul className="space-y-1">
             {[
-              { label: "Explore", icon: Telescope , url:"/dashboard"},
-              { label: "Your Dashboard", icon: LayoutDashboard, url:"/dashboard/manage" },
+              { label: "Dashboard", icon: LayoutDashboard , url:"/dashboard"},
+              { label: "Manage", icon: Telescope, url:"/dashboard/manage" },
               { label: "Organization", icon: Users, url:"/dashboard/organization" },
               { label: "Trends", icon: Flame, url:"/dashboard/trend" },
               { label: "Map Explorer", icon: Map, url:"/dashboard/maps" },
