@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@antv/l7": "^2.22.5",
-    "@antv/l7-maps": "^2.22.5",
+    "@antv/l7-maps": "^2.0.14",
     "@emailjs/browser": "^4.4.1",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "1.2.2",

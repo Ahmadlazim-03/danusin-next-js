@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Bell, ChevronDown, Heart, LogOut, Search, Settings, UserCircle2 } from "lucide-react";
+import { Bell, ChevronDown, Heart, LogOut, Search, UserCircle2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link"; // Pastikan Link diimpor
@@ -57,6 +57,11 @@ export function Header() {
 
   const handleLogout = () => {
     pb.authStore.clear();
+  
+    // Redirect to login page after logout
+    window.location.href = "/login";
+
+
   };
 
   const logoPath = theme === "dark" ? "/logo-danusin-hijau.png" : "/logo-danusin-putih.png";
@@ -162,12 +167,7 @@ export function Header() {
                        <span>My Profile</span>
                      </Link>
                    </DropdownMenuItem>
-                   <DropdownMenuItem asChild className="focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm">
-                     <Link href="/settings" className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer w-full">
-                       <Settings className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                       <span>Settings</span>
-                     </Link>
-                   </DropdownMenuItem>
+
                    <DropdownMenuItem className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 hover:!bg-neutral-100 dark:hover:!bg-zinc-700/50 focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm cursor-pointer">
                      <Bell className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                      <span>Notifications</span>

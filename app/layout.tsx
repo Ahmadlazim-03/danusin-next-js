@@ -1,13 +1,14 @@
 'use client'; 
 
 import type React from "react";
-import { Inter } from "next/font/google";
-import "./globals.css";
+// import type { Metadata } from "next"; // Metadata type is no longer needed here
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from "@/components/ui/toaster";
+import { Inter } from "next/font/google";
+import { usePathname } from 'next/navigation'; // <-- Impor usePathname
 import Script from "next/script";
-import { usePathname } from 'next/navigation';
+import "./globals.css"; // globals.css tetap dimuat untuk semua halaman
 
 const inter = Inter({ subsets: ["latin"] });
 export default function RootLayout({
@@ -20,7 +21,6 @@ export default function RootLayout({
   const globalHeadElements = (
     <>
       <link rel="icon" href="/logo-danusin-hijau.png" />
-      <link rel="apple-touch-icon" href="/logo-danusin-hijau.png" />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link
@@ -82,6 +82,8 @@ export default function RootLayout({
       <head>
         {globalHeadElements}
         {conditionalVendorCSS}
+        <link rel="apple-touch-icon" href="/logo-danusin-hijau.png" />
+
       </head>
       <body className={inter.className}>
         <AuthProvider>

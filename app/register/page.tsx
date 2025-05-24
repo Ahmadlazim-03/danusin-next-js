@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useAuth } from "@/components/auth/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +9,9 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useEffect, useState } from "react"
 import { FaGoogle } from "react-icons/fa"
 
 export default function RegisterPage() {
@@ -22,8 +22,16 @@ export default function RegisterPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("")
   const [isDanuser, setIsDanuser] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { register, loginWithGoogle } = useAuth()
+  const { user, register, loginWithGoogle } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
+
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      router.push("/register/keywords")
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +62,8 @@ export default function RegisterPage() {
         title: "Registration successful",
         description: "Your account has been created. Please select your interests.",
       })
+      // The auth provider should automatically update the user state,
+      // which will trigger the useEffect above to redirect to dashboard
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -69,15 +79,47 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       await loginWithGoogle(isDanuser)
-    } catch (error) {
       toast({
-        title: "Google registration failed",
-        description: "There was an error registering with Google. Please try again.",
-        variant: "destructive",
+        title: "Google registration successful",
+        description: "Welcome to Danusin!",
       })
+      // The auth provider should automatically update the user state,
+      // which will trigger the useEffect above to redirect to dashboard
+    } catch (error: any) {
+      const errorMsg = String(error?.message || error || "").toLowerCase()
+      const isCancellation =
+        errorMsg.includes("cancel") ||
+        errorMsg.includes("closed by user") ||
+        errorMsg.includes("popup_closed_by_user") ||
+        errorMsg.includes("cancelled") ||
+        errorMsg.includes("popup window closed")
+
+      if (!isCancellation) {
+        toast({
+          title: "Google registration failed",
+          description: "There was an error registering with Google. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Don't render the form if user is already logged in (prevents flash of content)
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+            <p className="text-center mt-4 text-muted-foreground">Redirecting to dashboard...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
