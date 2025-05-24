@@ -31,10 +31,10 @@ export default function ProfilePage() {
     <main >
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        <p className="text-muted-foreground mt-5">Manage your account settings and preferences</p>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs defaultValue="general" className="w-full mt-5">
         <TabsList className="mb-8 grid w-full grid-cols-3 md:w-auto">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
