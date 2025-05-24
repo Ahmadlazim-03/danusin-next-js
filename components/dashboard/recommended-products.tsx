@@ -100,7 +100,7 @@ export function RecommendedProducts() {
   }, [])
 
   return (
-    <Card className="border-green-100 bg-white">
+    <Card className="dark:bg-zinc-700/70 bg-white dark:bg-zinc-800/80">
       <CardHeader className="pb-0">
         <h2 className="text-xl font-bold">Recommended Products</h2>
         <p className="text-sm text-muted-foreground">Discover the latest products from our community</p>

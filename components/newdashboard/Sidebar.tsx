@@ -25,7 +25,7 @@ export function Sidebar() {
       <div className="space-y-6">
 
         {/* Bagian DISCOVER */}
-        <div className="bg-emerald-100/80 bg-gradi backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg
+        <div className="bg-emerald-100/80 bg-gradi backdrop-blur-lg dark:bg-emerald-950/80 dark:backdrop-blur-lg
                         rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50
                         shadow-sm hover:shadow-lg transition-all duration-300">
           <h3 className="font-semibold text-emerald-600 dark:text-emerald-400
@@ -34,7 +34,13 @@ export function Sidebar() {
             Discover
           </h3>
           <ul className="space-y-1">
-            {discoverItems.map((item) => {
+            {[
+              { label: "Explore", icon: Telescope , url:"/dashboard"},
+              { label: "Your Dashboard", icon: LayoutDashboard, url:"/dashboard/manage" },
+              { label: "Organization", icon: Users, url:"/dashboard/organization" },
+              { label: "Trends", icon: Flame, url:"/dashboard/trend" },
+              { label: "Map Explorer", icon: Map, url:"/dashboard/maps" },
+            ].map((item) => {
               const Icon = item.icon;
               // Cek apakah item ini aktif
               const isActive = pathname === item.url;
@@ -47,7 +53,7 @@ export function Sidebar() {
                                 text-neutral-600 dark:text-zinc-300
                                 hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70
                                 hover:text-emerald-600 dark:hover:text-emerald-300
-                                ${isActive ? 'bg-emerald-200/70 dark:bg-zinc-700 text-emerald-700 dark:text-emerald-300 shadow-inner' : ''}`} // Terapkan kelas jika aktif
+                                ${isActive ? 'bg-emerald-200/70 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-inner' : ''}`} // Terapkan kelas jika aktif
                   >
                     <Icon className={`mr-2.5 h-4 w-4 text-neutral-400 dark:text-zinc-400
                                      group-hover:text-emerald-500 dark:group-hover:text-emerald-300

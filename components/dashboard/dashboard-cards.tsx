@@ -186,7 +186,7 @@ export function DashboardCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {statCards.map((card, index) => (
-        <Card key={index} className="border-green-100 bg-white">
+        <Card key={index} className="dark:border-zinc-700/70 bg-white dark:bg-zinc-800/80">
           <CardContent className="p-4">
             <div className="text-center">
               <h3 className="mb-1 text-sm font-medium">{card.title}</h3>
