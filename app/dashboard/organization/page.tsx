@@ -63,9 +63,9 @@ export default function OrganizationsPage() {
         </div>
         <div>
           <Button asChild className="bg-green-600 hover:bg-green-700">
-            <Link href="/dashboard/organizations/new">
+            <Link href="/dashboard/organization/all">
               <Plus className="mr-2 h-4 w-4" />
-              Create Organization
+              Find Organization
             </Link>
           </Button>
         </div>

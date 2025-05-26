@@ -84,7 +84,16 @@ function ProductCard({ product }: { product: Product }) {
           <div className="flex-1"></div>
           <div className="flex items-center justify-between text-xs sm:text-sm mt-2">
             <div className="flex items-center gap-1 font-semibold text-neutral-900 dark:text-white">{displayPrice}</div>
-            {product.added_by && (<div className="text-[11px] sm:text-xs text-neutral-500 dark:text-zinc-400 flex items-center gap-0.5 sm:gap-1"><User className="h-3 w-3 sm:h-3.5 sm:w-3.5" /><span className="truncate max-w-[80px]">{product.added_by.name}</span></div>)}
+            
+            {/* --- PERUBAHAN DI SINI (Untuk Debug) --- */}
+            <div className="text-[11px] sm:text-xs text-neutral-500 dark:text-zinc-400 flex items-center gap-0.5 sm:gap-1">
+                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="truncate max-w-[80px]">
+                    {product.added_by ? product.added_by.name : "N/A"} {/* Tampilkan N/A jika null */}
+                </span>
+            </div>
+            {/* --- AKHIR PERUBAHAN --- */}
+
           </div>
         </CardContent>
       </Card>
@@ -115,12 +124,15 @@ export function RecommendedProducts() {
               cancelTokensRef.current.push(token);
               const result = await pb.collection("danusin_product").getList(1, 6, { sort: "-created", expand: "by_organization,added_by,catalog", $autoCancel: false, $cancelKey: token });
               if (!isMountedRef.current) return;
+              // Tambahkan console.log di sini untuk cek data
+              console.log("Fetched Data Items:", result.items); 
               const details = result.items.map((item: any) => ({
                   id: item.id, collectionId: item.collectionId, product_name: item.product_name, description: item.description, price: item.price, discount: item.discount, product_image: item.product_image || [],
                   by_organization: item.expand?.by_organization ? { id: item.expand.by_organization.id, organization_name: item.expand.by_organization.organization_name, organization_slug: item.expand.by_organization.organization_slug } : null,
                   added_by: item.expand?.added_by ? { id: item.expand.added_by.id, name: item.expand.added_by.name } : null,
                   catalog: item.expand?.catalog ? item.expand.catalog.map((cat: any) => ({ id: cat.id, name: cat.name })) : null,
               }));
+              console.log("Mapped Products:", details); // Cek data setelah mapping
               setProducts(details);
           } catch (error: any) { if (error.name !== "AbortError") console.error("Fetch Error:", error); } 
           finally { if (isMountedRef.current) setLoading(false); }
@@ -131,25 +143,23 @@ export function RecommendedProducts() {
   return (
     <Card className="bg-transparent border-none shadow-none"> 
     
-      {/* --- PERUBAHAN CardHeader --- */}
-      <CardHeader className="p-0 mb-4 flex flex-row justify-between items-center"> {/* Hapus padding, jadi flex, beri margin bawah */}
-        <div> {/* Teks di kiri */}
+      <CardHeader className="p-0 mb-4 flex flex-row justify-between items-center">
+        <div> 
           <h2 className="text-xl font-bold">Recommended Products</h2>
           <p className="text-sm text-muted-foreground">Discover the latest products from our community</p>
         </div>
-        <div> {/* Tombol di kanan */}
+        <div>
             <Button asChild variant="outline" size="sm" className="border-neutral-300 text-neutral-700 hover:bg-emerald-50/90 hover:border-emerald-500 hover:text-emerald-600
-                     dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:border-emerald-500 dark:hover:text-emerald-400
-                     transition-all duration-200 min-w-[90px] sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 rounded-md">
-                <Link href="/dashboard/products"> {/* Arahkan ke halaman semua produk */}
+                    dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:border-emerald-500 dark:hover:text-emerald-400
+                    transition-all duration-200 min-w-[90px] sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 rounded-md">
+                <Link href="/dashboard/products/all">
                     View All
                 </Link>
             </Button>
         </div>
       </CardHeader>
-      {/* --- AKHIR PERUBAHAN CardHeader --- */}
 
-      <CardContent className="p-0"> {/* Hapus padding & margin atas */}
+      <CardContent className="p-0">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {[...Array(6)].map((_, i) => (
