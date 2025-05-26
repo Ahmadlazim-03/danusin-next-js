@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { Loader2 } from "lucide-react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import { useMap, INDONESIA_CENTER } from "./map-provider"
-import { Loader2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { INDONESIA_CENTER, useMap } from "./map-provider"
 
 // Mapbox access token - replace with your own
 mapboxgl.accessToken = "pk.eyJ1IjoiYWhtYWRsYXppbSIsImEiOiJjbWFudjJscDMwMGJjMmpvcXdja29vN2h6In0.lbl0E3ixhWKnKuQ5T1aQcw"
@@ -14,10 +14,14 @@ export function MapboxMap() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({})
   const [mapLoaded, setMapLoaded] = useState(false)
+  const mapInitializedRef = useRef(false)
 
-  // Initialize map
+  // Initialize map only once
   useEffect(() => {
-    if (!mapContainer.current) return
+    if (!mapContainer.current || mapInitializedRef.current || mapRef.current) return
+
+    mapInitializedRef.current = true
+    console.log("Initializing map...")
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
@@ -36,6 +40,7 @@ export function MapboxMap() {
     })
 
     map.on("load", () => {
+      console.log("Map loaded")
       // Add 3D terrain with error handling
       try {
         map.addSource("mapbox-dem", {
@@ -96,19 +101,30 @@ export function MapboxMap() {
       }
     })
 
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
+    // Add a click handler to the map to ensure it doesn't interfere with marker clicks
+    map.on("click", (e) => {
+      // Only clear selection if we're clicking on the map itself, not a marker
+      // Check if the click event target is a marker
+      const target = e.originalEvent.target as HTMLElement
+      const isMarker = target.closest(".mapboxgl-marker")
+
+      if (!isMarker) {
+        selectUser(null)
       }
+    })
+
+    return () => {
+      // Do not remove the map on component unmount
+      // This prevents the map from being reinitialized
     }
-  }, [mapRef])
+  }, [mapRef, selectUser])
 
   // Update markers when user locations change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 
     const map = mapRef.current
+    console.log("Updating markers:", userLocations.length)
 
     // Remove markers that are no longer in the data
     Object.keys(markersRef.current).forEach((id) => {
@@ -125,7 +141,8 @@ export function MapboxMap() {
       // Create marker element
       const createMarkerElement = () => {
         const el = document.createElement("div")
-        el.className = "relative"
+        el.className = "relative marker-element"
+        el.setAttribute("data-user-id", id)
 
         // Pin container
         const pin = document.createElement("div")
@@ -178,21 +195,23 @@ export function MapboxMap() {
       }
 
       if (markersRef.current[id]) {
-        // Update existing marker
+        // Update existing marker position
         markersRef.current[id].setLngLat(coordinates)
-
-        // Replace the marker element to update its appearance
-        const markerElement = createMarkerElement()
-        markersRef.current[id].getElement().replaceWith(markerElement)
-        markersRef.current[id] = new mapboxgl.Marker({ element: markerElement }).setLngLat(coordinates).addTo(map)
       } else {
         // Create new marker
         const markerElement = createMarkerElement()
         const marker = new mapboxgl.Marker({ element: markerElement }).setLngLat(coordinates).addTo(map)
 
-        // Add click handler
-        marker.getElement().addEventListener("click", () => {
-          selectUser(user)
+        // Add click handler directly to the marker element
+        markerElement.addEventListener("click", (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          console.log("Marker clicked for user:", user.name)
+
+          // Use setTimeout to ensure this runs after any other click handlers
+          setTimeout(() => {
+            selectUser(user)
+          }, 10)
         })
 
         markersRef.current[id] = marker

@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +16,12 @@ export function UserCard() {
   const { selectedUser, selectUser, flyToUser, userProducts, isLoadingProducts } = useMap()
   const [timeAgo, setTimeAgo] = useState<string>("")
   const [activeTab, setActiveTab] = useState("info")
+
+  useEffect(() => {
+    if (selectedUser) {
+      console.log("UserCard rendering for:", selectedUser.name)
+    }
+  }, [selectedUser])
 
   // Format time ago for the selected user
   useEffect(() => {
@@ -45,21 +53,28 @@ export function UserCard() {
     return () => clearInterval(interval)
   }, [selectedUser])
 
+  // If no user is selected, don't render anything
   if (!selectedUser) return null
 
   const handleFlyToUser = () => {
     flyToUser(selectedUser.coordinates)
   }
 
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    selectUser(null)
+  }
+
   return (
-    <div className="absolute bottom-4 left-4 z-10 animate-fade-in">
+    <div className="fixed bottom-4 left-4 z-[1000] animate-fade-in pointer-events-auto">
       <Card className="w-96 shadow-lg max-h-[80vh] overflow-hidden flex flex-col">
         <CardHeader className="pb-2 flex flex-row items-start justify-between">
           <div>
             <CardTitle className="text-lg">{selectedUser.name}</CardTitle>
             {selectedUser.username && <CardDescription>@{selectedUser.username}</CardDescription>}
           </div>
-          <Button variant="ghost" size="icon" onClick={() => selectUser(null)}>
+          <Button variant="ghost" size="icon" onClick={handleClose}>
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
@@ -72,7 +87,7 @@ export function UserCard() {
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center">
               <Package className="h-4 w-4 mr-2" />
-              Products
+              Products {isLoadingProducts ? "" : `(${userProducts.length})`}
             </TabsTrigger>
           </TabsList>
 
@@ -117,11 +132,18 @@ export function UserCard() {
                     </span>
                   </div>
                 )}
+
+                <div className="grid grid-cols-3 gap-1">
+                  <span className="font-medium text-gray-500 dark:text-gray-400">User ID:</span>
+                  <span className="col-span-2 font-mono text-xs truncate" title={selectedUser.userId}>
+                    {selectedUser.userId}
+                  </span>
+                </div>
               </div>
             </CardContent>
 
             <CardFooter className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => selectUser(null)}>
+              <Button variant="outline" className="flex-1" onClick={handleClose}>
                 Close
               </Button>
               <Button className="flex-1" onClick={handleFlyToUser}>

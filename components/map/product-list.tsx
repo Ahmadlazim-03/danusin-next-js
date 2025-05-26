@@ -1,11 +1,12 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { useMap } from "./map-provider"
 import { Card, CardContent, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/utils"
-import { Package2, Store } from "lucide-react"
-import { useMap } from "./map-provider"
+import { Package2, Store, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function ProductList() {
   const { userProducts, isLoadingProducts, selectedUser } = useMap()
@@ -43,6 +44,16 @@ export function ProductList() {
             ? `${selectedUser.organizationName} hasn't added any products yet.`
             : "This user isn't associated with any organization or products."}
         </p>
+
+        {!selectedUser?.organizationId && (
+          <Alert variant="warning" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Organization Found</AlertTitle>
+            <AlertDescription>
+              This user isn't associated with any organization. Products are linked to organizations.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     )
   }
@@ -63,7 +74,7 @@ export function ProductList() {
             {product.images.length > 0 && (
               <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
                 <img
-                  src={product.images[0] || "/placeholder.svg"}
+                  src={product.images[0] || "/placeholder.svg?height=200&width=300"}
                   alt={product.name}
                   className="absolute inset-0 w-full h-full object-cover"
                   onError={(e) => {

@@ -90,3 +90,46 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+  pointer-events: auto !important;
+}
+
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping {
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.mapboxgl-marker {
+  cursor: pointer !important;
+  z-index: 40 !important;
+}
+
+.mapboxgl-marker:hover {
+  z-index: 45 !important;
+}
+
+.marker-element {
+  cursor: pointer !important;
+}

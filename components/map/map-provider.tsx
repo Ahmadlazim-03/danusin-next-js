@@ -3,7 +3,7 @@
 import type React from "react"
 
 import type PocketBase from "pocketbase"
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 
 // Update the PocketBase initialization to use the existing pb instance from lib/pocketbase
 import { pb } from "@/lib/pocketbase"
@@ -52,6 +52,7 @@ interface MapContextType {
   mapRef: React.MutableRefObject<mapboxgl.Map | null>
   userProducts: Product[]
   isLoadingProducts: boolean
+  setError: React.Dispatch<React.SetStateAction<string | null>>
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined)
@@ -65,10 +66,11 @@ export function MapProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [userProducts, setUserProducts] = useState<Product[]>([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const selectingUserRef = useRef(false)
 
   // Replace the [pb] useState with:
   const [pbInstance] = useState(() => pb)
-  const mapRef = { current: null } as React.MutableRefObject<mapboxgl.Map | null>
+  const mapRef = useRef<mapboxgl.Map | null>(null)
 
   const flyToUser = (coordinates: [number, number]) => {
     if (mapRef.current) {
@@ -82,9 +84,38 @@ export function MapProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Fix the handleSelectUser function to ensure it properly updates the state
+  // Replace the existing handleSelectUser function with this improved version:
+
+  // Custom select user function to handle product fetching
+  const handleSelectUser = (user: UserLocation | null) => {
+    // Prevent duplicate selection events
+    if (selectingUserRef.current) return
+
+    selectingUserRef.current = true
+
+    console.log("Selecting user:", user?.name || "none")
+
+    // Always update the selected user state first
+    setSelectedUser(user)
+
+    // If user is selected, fly to their location
+    if (user) {
+      // Small delay to ensure state is updated before flying
+      setTimeout(() => {
+        if (mapRef.current) {
+          flyToUser(user.coordinates)
+        }
+        selectingUserRef.current = false
+      }, 50)
+    } else {
+      selectingUserRef.current = false
+    }
+  }
+
   // Fetch products when a user is selected
   useEffect(() => {
-    if (!selectedUser || !selectedUser.organizationId) {
+    if (!selectedUser) {
       setUserProducts([])
       return
     }
@@ -92,33 +123,85 @@ export function MapProvider({ children }: { children: ReactNode }) {
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true)
-        const records = await pbInstance.collection("danusin_product").getList(1, 10, {
-          filter: `by_organization="${selectedUser.organizationId}"`,
-          sort: "-created",
-        })
 
-        const products: Product[] = records.items.map((record) => {
-          const images =
-            record.product_image?.map((image: string) =>
-              pbInstance.files.getUrl(record, image, { thumb: "300x300" }),
-            ) || []
+        // First, try to get the user's organization if not already available
+        let orgId = selectedUser.organizationId
 
-          return {
-            id: record.id,
-            name: record.product_name || "Unnamed Product",
-            description: record.description || "",
-            price: record.price || 0,
-            discount: record.discount,
-            slug: record.slug || "",
-            images,
-            created: record.created,
-            updated: record.updated,
+        if (!orgId && selectedUser.userId) {
+          try {
+            const userData = await pbInstance.collection("danusin_users").getOne(selectedUser.userId)
+            if (userData.organizations && userData.organizations.length > 0) {
+              orgId = userData.organizations[0]
+            }
+          } catch (err) {
+            console.warn("Could not fetch user organization:", err)
           }
-        })
+        }
 
-        setUserProducts(products)
+        // If we have an organization ID, fetch products
+        if (orgId) {
+          console.log(`Fetching products for organization: ${orgId}`)
+          const records = await pbInstance.collection("danusin_product").getList(1, 10, {
+            filter: `by_organization="${orgId}"`,
+            sort: "-created",
+          })
+
+          console.log(`Found ${records.items.length} products`)
+
+          const products: Product[] = records.items.map((record) => {
+            const images =
+              record.product_image?.map((image: string) =>
+                pbInstance.files.getUrl(record, image, { thumb: "300x300" }),
+              ) || []
+
+            return {
+              id: record.id,
+              name: record.product_name || "Unnamed Product",
+              description: record.description || "",
+              price: record.price || 0,
+              discount: record.discount,
+              slug: record.slug || "",
+              images,
+              created: record.created,
+              updated: record.updated,
+            }
+          })
+
+          setUserProducts(products)
+        } else {
+          // If no organization, try to fetch products by user directly
+          console.log(`Fetching products for user: ${selectedUser.userId}`)
+          const records = await pbInstance.collection("danusin_product").getList(1, 10, {
+            filter: `added_by="${selectedUser.userId}"`,
+            sort: "-created",
+          })
+
+          console.log(`Found ${records.items.length} products by user`)
+
+          const products: Product[] = records.items.map((record) => {
+            const images =
+              record.product_image?.map((image: string) =>
+                pbInstance.files.getUrl(record, image, { thumb: "300x300" }),
+              ) || []
+
+            return {
+              id: record.id,
+              name: record.product_name || "Unnamed Product",
+              description: record.description || "",
+              price: record.price || 0,
+              discount: record.discount,
+              slug: record.slug || "",
+              images,
+              created: record.created,
+              updated: record.updated,
+            }
+          })
+
+          setUserProducts(products)
+        }
       } catch (err: any) {
         console.error("Error fetching products:", err)
+        setUserProducts([]) // Clear products on error
       } finally {
         setIsLoadingProducts(false)
       }
@@ -452,13 +535,14 @@ export function MapProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         pb: pbInstance,
-        selectUser: setSelectedUser,
+        selectUser: handleSelectUser,
         startSharingLocation,
         stopSharingLocation,
         flyToUser,
         mapRef,
         userProducts,
         isLoadingProducts,
+        setError,
       }}
     >
       {children}
