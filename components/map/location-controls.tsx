@@ -4,16 +4,57 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Loader2, MapPin, MapPinOff, Users } from "lucide-react"
+import { AlertCircle, Clock, Loader2, MapPin, MapPinOff, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useMap } from "./map-provider"
 
 export function LocationControls() {
-  const { isSharingLocation, isLoading, error, userLocations, startSharingLocation, stopSharingLocation, setError } =
-    useMap()
+  const {
+    isSharingLocation,
+    isLoading,
+    error,
+    userLocations,
+    startSharingLocation,
+    stopSharingLocation,
+    setError,
+    lastLocationUpdate,
+  } = useMap()
   const { user } = useAuth()
 
   const [permissionState, setPermissionState] = useState<PermissionState | "unknown">("unknown")
+  const [timeAgo, setTimeAgo] = useState<string>("")
+
+  // Format time ago for the last location update
+  useEffect(() => {
+    if (!lastLocationUpdate) {
+      setTimeAgo("")
+      return
+    }
+
+    const updateTimeAgo = () => {
+      const now = new Date()
+      const diffMs = now.getTime() - lastLocationUpdate.getTime()
+
+      // Convert to appropriate time unit
+      if (diffMs < 1000) {
+        setTimeAgo("Just now")
+      } else if (diffMs < 60000) {
+        const seconds = Math.floor(diffMs / 1000)
+        setTimeAgo(`${seconds} second${seconds > 1 ? "s" : ""} ago`)
+      } else if (diffMs < 3600000) {
+        const minutes = Math.floor(diffMs / 60000)
+        setTimeAgo(`${minutes} minute${minutes > 1 ? "s" : ""} ago`)
+      } else {
+        const hours = Math.floor(diffMs / 3600000)
+        setTimeAgo(`${hours} hour${hours > 1 ? "s" : ""} ago`)
+      }
+    }
+
+    updateTimeAgo()
+    const interval = setInterval(updateTimeAgo, 1000)
+
+    return () => clearInterval(interval)
+  }, [lastLocationUpdate])
 
   // Check for geolocation permission
   const checkLocationPermission = async () => {
@@ -108,6 +149,16 @@ export function LocationControls() {
             {isSharingLocation ? "Sharing" : "Not Sharing"}
           </span>
         </div>
+
+        {isSharingLocation && lastLocationUpdate && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-500" />
+              <span className="font-medium">Last Update:</span>
+            </div>
+            <span className="font-medium text-blue-500">{timeAgo}</span>
+          </div>
+        )}
       </CardContent>
 
       <CardFooter>

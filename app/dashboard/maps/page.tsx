@@ -3,6 +3,7 @@
 import { LocationControls } from "@/components/map/location-controls"
 import { MapProvider } from "@/components/map/map-provider"
 import { MapboxMap } from "@/components/map/mapbox-map"
+import { SearchPanel } from "@/components/map/search-panel"
 import { UserCard } from "@/components/map/user-card"
 import { Loader2 } from "lucide-react"
 import { Suspense } from "react"
@@ -11,10 +12,11 @@ export default function MapPage() {
   return (
     <div className="w-full h-screen relative">
       <MapProvider>
-        <div className="absolute top-4 left-4 z-10">
+        <div className="absolute top-4 left-16 z-10">
           <h1 className="text-3xl font-bold text-zinc-800 dark:text-white drop-shadow-md">Danusin Live Map</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-300 mt-1">See users across Indonesia in real-time</p>
         </div>
+        <SearchPanel />
 
         <div className="absolute top-4 right-4 z-10">
           <LocationControls />

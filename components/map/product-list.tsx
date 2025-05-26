@@ -1,12 +1,12 @@
 "use client"
 
-import { useMap } from "./map-provider"
-import { Card, CardContent, CardDescription } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/utils"
-import { Package2, Store, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, Building, Package2, Store } from "lucide-react"
+import { useMap } from "./map-provider"
 
 export function ProductList() {
   const { userProducts, isLoadingProducts, selectedUser } = useMap()
@@ -90,6 +90,14 @@ export function ProductList() {
                   {product.description.replace(/<[^>]*>?/gm, "")}
                 </CardDescription>
               )}
+
+              {product.organizationName && (
+                <div className="mt-2 flex items-center text-xs text-gray-500">
+                  <Building className="h-3 w-3 mr-1 text-blue-500" />
+                  <span>{product.organizationName}</span>
+                </div>
+              )}
+
               <div className="mt-2 flex items-center justify-between">
                 <div>
                   <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
@@ -102,6 +110,14 @@ export function ProductList() {
                 {product.discount && <Badge className="text-xs">{product.discount}% OFF</Badge>}
               </div>
             </CardContent>
+            <CardFooter className="p-3 pt-0 flex justify-between items-center">
+              <div className="text-xs text-gray-500">ID: {product.id.substring(0, 8)}...</div>
+              {product.organizationSlug && (
+                <Badge variant="outline" className="text-xs">
+                  {product.organizationSlug}
+                </Badge>
+              )}
+            </CardFooter>
           </Card>
         ))}
       </div>
