@@ -288,7 +288,7 @@ export default function NewOrganizationPage() {
 
             <CardFooter className="flex justify-between mt-8 pt-6 border-t">
               <Button variant="outline" asChild type="button">
-                <Link href="/dashboard/organizations">Batal</Link>
+                <Link href="/dashboard/organization">Batal</Link>
               </Button>
               <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
                 {isSubmitting ? (

@@ -178,7 +178,8 @@ export function Header() {
                   <DropdownMenuItem asChild className="focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm">
                     <Link href="/dashboard/profile" className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer w-full"> <UserCircle2 className="w-4 h-4 text-neutral-500 dark:text-neutral-400" /> <span>My Profile</span> </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 hover:!bg-neutral-100 dark:hover:!bg-zinc-700/50 focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm cursor-pointer"> <Bell className="w-4 h-4 text-neutral-500 dark:text-neutral-400" /> <span>Notifications</span> </DropdownMenuItem>
+
+                  <DropdownMenuItem className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-neutral-700 dark:text-neutral-200 hover:!bg-neutral-100 dark:hover:!bg-zinc-700/50 focus:!bg-neutral-100 dark:focus:!bg-zinc-700/50 rounded-sm cursor-pointer"> <Bell className="w-4 h-4 text-neutral-500 dark:text-neutral-400" /> <span><Link href="/dashboard/notification">Notifications</Link></span> </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-neutral-200 dark:bg-zinc-700 h-px my-1" />
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-red-600 dark:text-red-500 hover:!bg-red-50 dark:hover:!bg-red-500/10 focus:!bg-red-50 dark:focus:!bg-red-500/10 rounded-sm cursor-pointer" > <LogOut className="w-4 h-4" /> <span>Logout</span> </DropdownMenuItem>
                 </DropdownMenuContent>
