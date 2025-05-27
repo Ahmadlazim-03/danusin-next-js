@@ -23,6 +23,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(user?.name || "")
+  const [phone, setPhone] = useState(user?.phone || "") // Phone is stored and handled as a string
   const [bio, setBio] = useState(user?.bio || "")
   const [location, setLocation] = useState(
     user?.location ? `${user.location.lat},${user.location.lon}` : ""
@@ -159,6 +160,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       await pb.collection(USERS_COLLECTION).update(user.id, {
         name,
+        phone, // Stored as a string
         bio,
         location: locationData,
         location_address: locationAddress,
@@ -225,6 +227,17 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={phone ? "" : "Your phone number"}
+            type="tel"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="bio">Bio</Label>
           <Textarea
             id="bio"
@@ -267,6 +280,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             value={locationAddress}
             onChange={(e) => setLocationAddress(e.target.value)}
             placeholder="Your address"
+            disabled
           />
         </div>
       </div>

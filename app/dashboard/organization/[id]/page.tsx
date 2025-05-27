@@ -145,7 +145,7 @@ export default function OrganizationManagePage() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-8 w-full"> {/* Menggunakan w-full untuk full width container */}
+      <div className="w-full"> {/* Menggunakan w-full untuk full width container */}
         <div className="space-y-8 max-w-5xl mx-auto"> {/* max-w untuk konten di tengah */}
           <div className="flex items-center gap-3 mb-6">
             <Skeleton className="h-9 w-9 rounded-md" />
@@ -172,7 +172,7 @@ export default function OrganizationManagePage() {
 
   if (error) {
     return (
-      <div className="p-4 md:p-8 w-full">
+      <div className="w-full">
         <div className="flex flex-col items-center justify-center py-12 text-center max-w-5xl mx-auto">
           <Building2 className="mb-4 h-16 w-16 text-destructive/70" />
           <h2 className="mb-3 text-2xl font-bold text-destructive">{error}</h2>
@@ -189,7 +189,7 @@ export default function OrganizationManagePage() {
 
   if (!organization) {
     return (
-      <div className="p-4 md:p-8 w-full">
+      <div className="w-full">
         <div className="flex flex-col items-center justify-center py-12 text-center max-w-5xl mx-auto">
           <Building2 className="mb-4 h-16 w-16 text-muted-foreground/60" />
           <h2 className="mb-2 text-2xl font-bold">Organisasi Tidak Ditemukan</h2>
@@ -205,7 +205,7 @@ export default function OrganizationManagePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 w-full"> {/* Menggunakan w-full untuk full width container */}
+    <div className="w-full"> {/* Menggunakan w-full untuk full width container */}
       <div className="space-y-6 md:space-y-8 max-w-5xl mx-auto"> {/* max-w untuk konten di tengah */}
         <div className="flex items-center gap-3 mb-6">
           <Button variant="outline" size="icon" asChild className="rounded-md flex-shrink-0">

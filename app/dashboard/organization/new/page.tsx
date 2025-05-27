@@ -18,7 +18,7 @@ import Image from "next/image";
 export default function NewOrganizationPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const router = useRouter()
+  const router = useRouter() // useRouter sudah diinisialisasi
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -83,7 +83,7 @@ export default function NewOrganizationPage() {
         toast({ title: "Error Validasi", description: "Target harus berupa angka positif atau kosong.", variant: "destructive"});
         return;
     }
-     if (isNaN(targetProgressValue) || targetProgressValue < 0) {
+      if (isNaN(targetProgressValue) || targetProgressValue < 0) {
         toast({ title: "Error Validasi", description: "Progres Target harus berupa angka positif atau kosong.", variant: "destructive"});
         return;
     }
@@ -119,7 +119,7 @@ export default function NewOrganizationPage() {
       });
 
       toast({ title: "Organisasi Dibuat", description: "Organisasi Anda berhasil dibuat" })
-      router.push("/dashboard/organization");
+      router.push("/dashboard/organization"); // Arahkan ke daftar organisasi setelah sukses
     } catch (error: any) {
       console.error("Error creating organization:", error);
       let errorMessage = "Terjadi error saat membuat organisasi Anda. Silakan coba lagi.";
@@ -140,25 +140,30 @@ export default function NewOrganizationPage() {
   }
 
   return (
-    // Outermost div, p-4 md:p-8 memberikan padding halaman, w-full membuatnya full width
-    <main className="p-4 md:p-8 w-full">
-      {/* Div ini sekarang TIDAK LAGI memiliki max-w-3xl dan mx-auto */}
+    <main className="w-full">
       <div className="space-y-8"> 
         <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" asChild className="rounded-md flex-shrink-0">
-                 <Link href="/dashboard/organization" aria-label="Kembali ke Daftar Organisasi">
-                    <ArrowLeft className="h-4 w-4" />
-                 </Link>
+            {/* --- PERUBAHAN TOMBOL BACK DI SINI --- */}
+            <Button
+                variant="outline"
+                size="icon"
+                type="button" 
+                className="rounded-md flex-shrink-0"
+                onClick={() => router.back()}
+                aria-label="Kembali ke halaman sebelumnya"
+            >
+                <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Buat Organisasi Baru</h1>
-                <p className="text-muted-foreground">Isi detail untuk organisasi baru Anda.</p>
-            </div>
+            {/* --- AKHIR PERUBAHAN TOMBOL BACK --- */}
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Buat Organisasi Baru</h1>
+            <p className="text-muted-foreground">Isi detail untuk organisasi baru Anda.</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-8"> {/* Jarak antar Card */}
-            <Card> {/* Card akan mengisi lebar parentnya */}
+          <div className="space-y-8">
+            <Card>
               <CardHeader>
                 <CardTitle>Informasi Utama</CardTitle>
                 <CardDescription>Nama, slug (otomatis), dan deskripsi organisasi.</CardDescription>
@@ -183,9 +188,9 @@ export default function NewOrganizationPage() {
                     disabled 
                     className="bg-muted/50"
                   />
-                   <p className="text-xs text-muted-foreground">
-                    Slug akan di-generate otomatis berdasarkan nama organisasi.
-                  </p>
+                    <p className="text-xs text-muted-foreground">
+                      Slug akan di-generate otomatis berdasarkan nama organisasi.
+                    </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="organization_description">Deskripsi Organisasi</Label>
@@ -265,7 +270,7 @@ export default function NewOrganizationPage() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="target_progress">Progres Target Saat Ini</Label>
-                         <div className="flex items-center">
+                          <div className="flex items-center">
                             <Percent className="h-5 w-5 text-muted-foreground mr-2"/>
                             <Input
                                 id="target_progress"
