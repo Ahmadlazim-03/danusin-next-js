@@ -113,7 +113,7 @@ function NewProductCard({ product, currentUser, favoriteIds, favoriteRecordId, u
                         <Link href={productLink}>{product.product_name}</Link>
                     </h3>
                     <div className="flex flex-wrap gap-1 mb-2 min-h-[22px]">
-                         {catalogs?.slice(0, 2).map((cat) => ( <Link key={cat.id} href={`/dashboard/catalog/${encodeURIComponent(cat.name)}`} passHref className="no-underline"> <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal border-neutral-300 dark:border-zinc-600 text-neutral-600 dark:text-zinc-400 group-hover:border-emerald-500/40 dark:group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-all duration-300 cursor-pointer hover:shadow-sm"> {cat.name} </Badge> </Link> ))}
+                         {catalogs?.slice(0, 2).map((cat) => ( <Link key={cat.id} href={`/dashboard/catalog/${encodeURIComponent(cat.id)}`} passHref className="no-underline"> <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-normal border-neutral-300 dark:border-zinc-600 text-neutral-600 dark:text-zinc-400 group-hover:border-emerald-500/40 dark:group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-all duration-300 cursor-pointer hover:shadow-sm"> {cat.name} </Badge> </Link> ))}
                     </div>
                     <div className="text-base sm:text-lg text-neutral-900 dark:text-white mb-2"> {displayPrice} </div>
                     <div className="flex-1"></div>

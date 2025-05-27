@@ -158,7 +158,7 @@ function ProductCard({ product }: { product: ProductDataForCard }) {
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-2 min-h-[22px]">
                         {product.catalog?.map((cat) => (
-                            <Link key={cat.id} href={`/dashboard/catalog/${slugify(cat.name)}`} passHref>
+                            <Link key={cat.id} href={`/dashboard/catalog/${slugify(cat.id)}`} passHref>
                                 <Badge
                                     variant="secondary"
                                     className="text-xs px-2 py-0.5 font-normal border-border text-muted-foreground group-hover:border-emerald-500/40 dark:group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-all duration-300 cursor-pointer hover:shadow-sm"
