@@ -2,6 +2,7 @@
 
 import type React from "react"
 
+import { useMap } from "@/components/map/map-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCurrency } from "@/lib/utils"
 import { Building, Loader2, Package, Search, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useMap } from "./map-provider"
 
 export function SearchPanel() {
   const { searchQuery, setSearchQuery, performSearch, clearSearch, searchResults, isSearching, selectUser, flyToUser } =

@@ -1,12 +1,12 @@
 "use client"
 
+import { useMap } from "@/components/map/map-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/utils"
 import { AlertCircle, Building, Package2, Store } from "lucide-react"
-import { useMap } from "./map-provider"
 
 export function ProductList() {
   const { userProducts, isLoadingProducts, selectedUser } = useMap()
@@ -69,57 +69,62 @@ export function ProductList() {
       </div>
 
       <div className="space-y-3">
-        {userProducts.map((product) => (
-          <Card key={product.id} className="overflow-hidden">
-            {product.images.length > 0 && (
-              <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
-                <img
-                  src={product.images[0] || "/placeholder.svg?height=200&width=300"}
-                  alt={product.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={(e) => {
-                    ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=200&width=300"
-                  }}
-                />
-              </div>
-            )}
-            <CardContent className="p-3">
-              <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
-              {product.description && (
-                <CardDescription className="text-xs mt-1 line-clamp-2">
-                  {product.description.replace(/<[^>]*>?/gm, "")}
-                </CardDescription>
-              )}
+        {userProducts.map((product) => {
+          const discountedPrice = product.discount ? product.price * (1 - product.discount / 100) : product.price
+          const showDiscount = product.discount > 0 && discountedPrice > 0
 
-              {product.organizationName && (
-                <div className="mt-2 flex items-center text-xs text-gray-500">
-                  <Building className="h-3 w-3 mr-1 text-blue-500" />
-                  <span>{product.organizationName}</span>
+          return (
+            <Card key={product.id} className="overflow-hidden">
+              {product.images.length > 0 && (
+                <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
+                  <img
+                    src={product.images[0] || "/placeholder.svg?height=200&width=300"}
+                    alt={product.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=200&width=300"
+                    }}
+                  />
                 </div>
               )}
+              <CardContent className="p-3">
+                <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
+                {product.description && (
+                  <CardDescription className="text-xs mt-1 line-clamp-2">
+                    {product.description.replace(/<[^>]*>?/gm, "")}
+                  </CardDescription>
+                )}
 
-              <div className="mt-2 flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                    {formatCurrency(product.discount ? product.price * (1 - product.discount / 100) : product.price)}
-                  </span>
-                  {product.discount && (
-                    <span className="text-xs line-through ml-1 text-gray-500">{formatCurrency(product.price)}</span>
-                  )}
+                {product.organizationName && (
+                  <div className="mt-2 flex items-center text-xs text-gray-500">
+                    <Building className="h-3 w-3 mr-1 text-blue-500" />
+                    <span>{product.organizationName}</span>
+                  </div>
+                )}
+
+                <div className="mt-2 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(discountedPrice)}
+                    </span>
+                    {showDiscount && (
+                      <span className="text-xs line-through ml-1 text-gray-500">{formatCurrency(product.price)}</span>
+                    )}
+                  </div>
+                  {showDiscount && <Badge className="text-xs">{product.discount}% OFF</Badge>}
                 </div>
-                {product.discount && <Badge className="text-xs">{product.discount}% OFF</Badge>}
-              </div>
-            </CardContent>
-            <CardFooter className="p-3 pt-0 flex justify-between items-center">
-              <div className="text-xs text-gray-500">ID: {product.id.substring(0, 8)}...</div>
-              {product.organizationSlug && (
-                <Badge variant="outline" className="text-xs">
-                  {product.organizationSlug}
-                </Badge>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
+              </CardContent>
+              <CardFooter className="p-3 pt-0 flex justify-between items-center">
+                <div className="text-xs text-gray-500">ID: {product.id.substring(0, 8)}...</div>
+                {product.organizationSlug && (
+                  <Badge variant="outline" className="text-xs">
+                    {product.organizationSlug}
+                  </Badge>
+                )}
+              </CardFooter>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

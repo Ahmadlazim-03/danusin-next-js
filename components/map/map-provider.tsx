@@ -6,6 +6,8 @@ import type PocketBase from "pocketbase"
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 
 // Update the PocketBase initialization to use the existing pb instance from lib/pocketbase
+import { useAuth } from "@/components/auth/auth-provider"
+import { useToast } from "@/components/ui/use-toast"
 import { pb } from "@/lib/pocketbase"
 
 // Center of Indonesia (approximate)
@@ -13,6 +15,12 @@ export const INDONESIA_CENTER = [118.0, -2.5]
 
 // Update interval in milliseconds (10 seconds)
 const LOCATION_UPDATE_INTERVAL = 10000
+
+// Inactivity timeout in milliseconds (2 minutes)
+const INACTIVITY_TIMEOUT = 120000
+
+// Debounce time for location updates (milliseconds)
+const LOCATION_UPDATE_DEBOUNCE = 2000
 
 export interface UserLocation {
   id: string
@@ -107,22 +115,79 @@ export function MapProvider({ children }: { children: ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("")
   const selectingUserRef = useRef(false)
   const locationIntervalRef = useRef<number | null>(null)
+  const inactivityTimeoutRef = useRef<number | null>(null)
+  const locationUpdateTimeoutRef = useRef<number | null>(null)
+  const fetchingLocationsRef = useRef(false)
+  const consecutiveErrorsRef = useRef(0)
+  const { toast } = useToast()
 
   // Replace the [pb] useState with:
   const [pbInstance] = useState(() => pb)
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const auth = useAuth()
 
   const flyToUser = (coordinates: [number, number]) => {
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: coordinates,
-        zoom: 15,
+        zoom: 20,
         pitch: 60,
         bearing: 0,
         duration: 2000,
       })
     }
   }
+
+  // Function to reset inactivity timeout
+  const resetInactivityTimeout = () => {
+    // Clear existing timeout
+    if (inactivityTimeoutRef.current) {
+      window.clearTimeout(inactivityTimeoutRef.current)
+    }
+
+    // Only set a new timeout if we're sharing location
+    if (isSharingLocation && currentUserLocation) {
+      inactivityTimeoutRef.current = window.setTimeout(async () => {
+        console.log("Inactivity timeout reached, marking user as inactive")
+        toast({
+          title: "Inactive Status",
+          description: "You've been marked as inactive due to inactivity.",
+          variant: "default",
+        })
+        await stopSharingLocation()
+      }, INACTIVITY_TIMEOUT)
+    }
+  }
+
+  // Set up activity tracking
+  useEffect(() => {
+    // Track user activity to reset the inactivity timeout
+    const trackActivity = () => {
+      resetInactivityTimeout()
+    }
+
+    // Add event listeners for user activity
+    window.addEventListener("mousemove", trackActivity)
+    window.addEventListener("keydown", trackActivity)
+    window.addEventListener("click", trackActivity)
+    window.addEventListener("touchstart", trackActivity)
+
+    // Initial setup of inactivity timeout
+    resetInactivityTimeout()
+
+    return () => {
+      // Clean up event listeners
+      window.removeEventListener("mousemove", trackActivity)
+      window.removeEventListener("keydown", trackActivity)
+      window.removeEventListener("click", trackActivity)
+      window.removeEventListener("touchstart", trackActivity)
+
+      // Clear timeout
+      if (inactivityTimeoutRef.current) {
+        window.clearTimeout(inactivityTimeoutRef.current)
+      }
+    }
+  }, [isSharingLocation, currentUserLocation])
 
   // Search functionality
   const performSearch = async () => {
@@ -154,7 +219,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
               organizationName = record.expand.by_organization.organization_name
               organizationSlug = record.expand.by_organization.organization_slug
             } else {
-              const org = await pbInstance.collection("danusin_organization").getOne(record.by_organization)
+              const org = await pbInstance.collection("danusin_organizations").getOne(record.by_organization)
               organizationName = org.organization_name
               organizationSlug = org.organization_slug
             }
@@ -193,7 +258,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
       }
 
       // Search for organizations
-      const orgRecords = await pbInstance.collection("danusin_organization").getList(1, 10, {
+      const orgRecords = await pbInstance.collection("danusin_organizations").getList(1, 10, {
         filter: `organization_name~"${searchQuery}" || organization_description~"${searchQuery}" || organization_slug~"${searchQuery}"`,
         sort: "-created",
       })
@@ -254,6 +319,11 @@ export function MapProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Error performing search:", err)
       setError("Failed to perform search. Please try again.")
+      toast({
+        title: "Search Error",
+        description: "Failed to perform search. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSearching(false)
     }
@@ -343,7 +413,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
                     organizationName = record.expand.by_organization.organization_name
                     organizationSlug = record.expand.by_organization.organization_slug
                   } else {
-                    const org = await pbInstance.collection("danusin_organization").getOne(record.by_organization)
+                    const org = await pbInstance.collection("danusin_organizations").getOne(record.by_organization)
                     organizationName = org.organization_name
                     organizationSlug = org.organization_slug
                   }
@@ -398,7 +468,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
                     organizationName = record.expand.by_organization.organization_name
                     organizationSlug = record.expand.by_organization.organization_slug
                   } else {
-                    const org = await pbInstance.collection("danusin_organization").getOne(record.by_organization)
+                    const org = await pbInstance.collection("danusin_organizations").getOne(record.by_organization)
                     organizationName = org.organization_name
                     organizationSlug = org.organization_slug
                   }
@@ -429,6 +499,11 @@ export function MapProvider({ children }: { children: ReactNode }) {
       } catch (err: any) {
         console.error("Error fetching products:", err)
         setUserProducts([]) // Clear products on error
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive",
+        })
       } finally {
         setIsLoadingProducts(false)
       }
@@ -440,9 +515,15 @@ export function MapProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Initial fetch of user locations - now including inactive users
     const fetchUserLocations = async () => {
+      // Prevent concurrent fetches
+      if (fetchingLocationsRef.current) return
+
+      fetchingLocationsRef.current = true
+
       try {
         setIsLoading(true)
-        // Changed filter to include all users, not just active ones
+
+        // Use the safeRequest helper with retries
         const records = await pbInstance.collection("danusin_users_location").getList(1, 100, {
           expand: "danuser_related",
         })
@@ -470,7 +551,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
             try {
               // Fetch the first organization
               const orgId = user.organizations[0]
-              const org = await pbInstance.collection("danusin_organization").getOne(orgId)
+              const org = await pbInstance.collection("danusin_organizations").getOne(orgId)
               organizationId = org.id
               organizationName = org.organization_name
             } catch (e) {
@@ -505,9 +586,15 @@ export function MapProvider({ children }: { children: ReactNode }) {
         setError(null)
       } catch (err: any) {
         console.error("Error fetching user locations:", err)
-        setError(`Failed to load user locations: ${err.message}`)
+        setError(`Failed to load user locations: ${err.message || "Unknown error"}`)
+        toast({
+          title: "Error",
+          description: "Failed to load user locations. Please check your connection.",
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
+        fetchingLocationsRef.current = false
       }
     }
 
@@ -537,7 +624,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
             if (user?.organizations && user.organizations.length > 0) {
               try {
                 const orgId = user.organizations[0]
-                const org = await pbInstance.collection("danusin_organization").getOne(orgId)
+                const org = await pbInstance.collection("danusin_organizations").getOne(orgId)
                 organizationId = org.id
                 organizationName = org.organization_name
               } catch (e) {
@@ -599,32 +686,90 @@ export function MapProvider({ children }: { children: ReactNode }) {
     }
   }, [pbInstance])
 
+  // Debounced function to update location
+  const debouncedUpdateLocation = (recordId: string, longitude: number, latitude: number) => {
+    // Clear any existing timeout
+    if (locationUpdateTimeoutRef.current) {
+      window.clearTimeout(locationUpdateTimeoutRef.current)
+    }
+
+    // Set a new timeout
+    locationUpdateTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        if (auth.upsertLiveLocation) {
+          await auth.upsertLiveLocation({ lon: longitude, lat: latitude }, recordId)
+        } else if (window.authProvider?.upsertLiveLocation) {
+          await window.authProvider.upsertLiveLocation({ lon: longitude, lat: latitude }, recordId)
+        } else {
+          await pbInstance.collection("danusin_users_location").update(recordId, {
+            danuser_location: { lat: latitude, lon: longitude },
+            isactive: true,
+          })
+        }
+
+        // Update last location update timestamp
+        setLastLocationUpdate(new Date())
+
+        // Reset consecutive errors counter on success
+        consecutiveErrorsRef.current = 0
+      } catch (err: any) {
+        console.error("Error updating location:", err)
+        if (err.message) {
+          console.error("Error details:", err.message)
+        }
+        if (err.data) {
+          console.error("Error data:", err.data)
+        }
+
+        // Increment consecutive errors counter
+        consecutiveErrorsRef.current += 1
+
+        // Show toast notification after multiple consecutive errors
+        if (consecutiveErrorsRef.current >= 3) {
+          toast({
+            title: "Connection Issues",
+            description: "Having trouble updating your location. Please check your connection.",
+            variant: "destructive",
+          })
+        }
+      }
+    }, LOCATION_UPDATE_DEBOUNCE)
+  }
+
   // Function to update location
   const updateLocation = async (recordId: string) => {
     try {
-      // Get current position
+      // Reset inactivity timeout
+      resetInactivityTimeout()
+
+      // Get current position with better error handling
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        })
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (err) => {
+            // Handle specific geolocation errors
+            if (err.code === 1) {
+              reject(new Error("Location permission denied. Please enable location access."))
+            } else if (err.code === 2) {
+              reject(new Error("Location unavailable. Please try again."))
+            } else if (err.code === 3) {
+              reject(new Error("Location request timed out. Please check your connection and try again."))
+            } else {
+              reject(err)
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // Increase timeout to 15 seconds
+            maximumAge: 5000, // Allow cached positions up to 5 seconds old
+          },
+        )
       })
 
       const { latitude, longitude } = position.coords
       console.log(`Updating location at ${new Date().toLocaleTimeString()}: ${latitude}, ${longitude}`)
 
-      // Update location in database
-      if (window.authProvider?.upsertLiveLocation) {
-        await window.authProvider.upsertLiveLocation({ lon: longitude, lat: latitude }, recordId)
-      } else {
-        await pbInstance.collection("danusin_users_location").update(recordId, {
-          danuser_location: { lat: latitude, lon: longitude },
-          isactive: true,
-        })
-      }
-
-      // Update local state
+      // Update local state immediately for a responsive UI
       setCurrentUserLocation((prev) => {
         if (!prev) return null
         return {
@@ -634,35 +779,85 @@ export function MapProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      // Update last location update timestamp
-      setLastLocationUpdate(new Date())
+      // Use debounced update to prevent too many requests
+      debouncedUpdateLocation(recordId, longitude, latitude)
     } catch (err: any) {
       console.error("Error updating location:", err)
+
+      // Provide more specific error messages based on the error
+      const errorMessage = err.message || "Unknown error updating location"
+      console.error("Error details:", errorMessage)
+
+      if (err.code) {
+        console.error("Geolocation error code:", err.code)
+      }
+
+      // Increment consecutive errors counter
+      consecutiveErrorsRef.current += 1
+
+      // Only show toast for timeout errors or after multiple consecutive errors
+      if (errorMessage.includes("timed out") || consecutiveErrorsRef.current >= 3) {
+        toast({
+          title: "Location Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+
+        // Set a user-friendly error message
+        setError(errorMessage)
+      }
+
+      // If we've had multiple timeouts, suggest stopping and restarting location sharing
+      if (errorMessage.includes("timed out")) {
+        console.log("Location timeout detected, will retry on next interval")
+      }
     }
   }
 
   const startSharingLocation = async () => {
     if (!pbInstance.authStore.isValid) {
-      setError("You must be logged in to share your location")
+      const errorMsg = "You must be logged in to share your location"
+      setError(errorMsg)
+      toast({
+        title: "Authentication Required",
+        description: errorMsg,
+        variant: "destructive",
+      })
       return
     }
 
     try {
       setIsLoading(true)
+      setError(null) // Clear any previous errors
+      consecutiveErrorsRef.current = 0 // Reset consecutive errors counter
 
-      // Get current position
+      // Get current position with better error handling
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        })
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (err) => {
+            // Handle specific geolocation errors
+            if (err.code === 1) {
+              reject(new Error("Location permission denied. Please enable location access."))
+            } else if (err.code === 2) {
+              reject(new Error("Location unavailable. Please try again."))
+            } else if (err.code === 3) {
+              reject(new Error("Location request timed out. Please check your connection and try again."))
+            } else {
+              reject(err)
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // Increase timeout to 15 seconds
+            maximumAge: 5000, // Allow cached positions up to 5 seconds old
+          },
+        )
       })
 
       const { latitude, longitude } = position.coords
 
       // Create or update location record using the auth provider's method if available
-      // This is a fallback implementation if the auth provider is not available
       const data = {
         danuser_related: pbInstance.authStore.model?.id,
         danuser_location: { lat: latitude, lon: longitude },
@@ -671,8 +866,10 @@ export function MapProvider({ children }: { children: ReactNode }) {
 
       let recordId
       try {
-        // Try to use the window.authProvider if available (we'll add this later)
-        if (window.authProvider?.upsertLiveLocation) {
+        // Try to use the auth provider if available
+        if (auth.upsertLiveLocation) {
+          recordId = await auth.upsertLiveLocation({ lon: longitude, lat: latitude }, currentUserLocation?.id || null)
+        } else if (window.authProvider?.upsertLiveLocation) {
           recordId = await window.authProvider.upsertLiveLocation(
             { lon: longitude, lat: latitude },
             currentUserLocation?.id || null,
@@ -689,11 +886,30 @@ export function MapProvider({ children }: { children: ReactNode }) {
         }
       } catch (err: any) {
         console.error("Error updating location record:", err)
-        throw err
+        const errorMessage = err.message || "Unknown error updating location record"
+        console.error("Error details:", errorMessage)
+
+        if (err.data) {
+          console.error("Error data:", err.data)
+        }
+
+        toast({
+          title: "Location Error",
+          description: `Failed to update location: ${errorMessage}`,
+          variant: "destructive",
+        })
+
+        throw new Error(`Failed to update location: ${errorMessage}`)
       }
 
       if (!recordId) {
-        throw new Error("Failed to create or update location record")
+        const errorMsg = "Failed to create or update location record"
+        toast({
+          title: "Location Error",
+          description: errorMsg,
+          variant: "destructive",
+        })
+        throw new Error(errorMsg)
       }
 
       const newLocation: UserLocation = {
@@ -715,6 +931,16 @@ export function MapProvider({ children }: { children: ReactNode }) {
       setLastLocationUpdate(new Date())
       setError(null)
 
+      // Show success toast
+      toast({
+        title: "Location Sharing Started",
+        description: "Your location is now being shared on the map.",
+        variant: "default",
+      })
+
+      // Reset inactivity timeout
+      resetInactivityTimeout()
+
       // Fly to user location
       flyToUser([longitude, latitude])
 
@@ -731,6 +957,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
       window.locationIntervalId = locationIntervalRef.current
 
       // Also set up watchPosition for more accurate updates between intervals
+      // with better error handling
       const watchId = navigator.geolocation.watchPosition(
         async (pos) => {
           try {
@@ -744,16 +971,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
               return
             }
 
-            if (window.authProvider?.upsertLiveLocation) {
-              await window.authProvider.upsertLiveLocation({ lon: newLon, lat: newLat }, recordId)
-            } else {
-              await pbInstance.collection("danusin_users_location").update(recordId, {
-                danuser_location: { lat: newLat, lon: newLon },
-                isactive: true,
-              })
-            }
-
-            // Update local state
+            // Update local state immediately
             setCurrentUserLocation((prev) => {
               if (!prev) return null
               return {
@@ -763,23 +981,62 @@ export function MapProvider({ children }: { children: ReactNode }) {
               }
             })
 
-            setLastLocationUpdate(new Date())
+            // Use debounced update to prevent too many requests
+            debouncedUpdateLocation(recordId, newLon, newLat)
+
+            // Reset inactivity timeout
+            resetInactivityTimeout()
           } catch (err: any) {
             console.error("Error updating location from watch:", err)
+            const errorMessage = err.message || "Unknown error updating location from watch"
+            console.error("Error details:", errorMessage)
           }
         },
         (err) => {
-          console.error("Geolocation error:", err)
-          setError(`Geolocation error: ${err.message}`)
+          // Don't show errors for every watchPosition error as they can be frequent
+          // Just log them unless it's a permission error
+          console.error("Geolocation watch error:", err)
+          if (err.code === 1) {
+            const errorMsg = "Location permission denied. Please enable location access."
+            setError(errorMsg)
+            toast({
+              title: "Permission Error",
+              description: errorMsg,
+              variant: "destructive",
+            })
+          }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000, // Increase timeout to 15 seconds
+          maximumAge: 5000, // Allow cached positions up to 5 seconds old
+        },
       )
 
       // Store watch ID for cleanup
       window.locationWatchId = watchId
     } catch (err: any) {
       console.error("Error sharing location:", err)
-      setError(`Failed to share location: ${err.message}`)
+      const errorMessage = err.message || "Unknown error sharing location"
+      setError(`Failed to share location: ${errorMessage}`)
+
+      // Show toast notification
+      toast({
+        title: "Location Sharing Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
+
+      // If location sharing fails, make sure we clean up any partial setup
+      if (locationIntervalRef.current) {
+        window.clearInterval(locationIntervalRef.current)
+        locationIntervalRef.current = null
+      }
+
+      if (window.locationWatchId) {
+        navigator.geolocation.clearWatch(window.locationWatchId)
+        delete window.locationWatchId
+      }
     } finally {
       setIsLoading(false)
     }
@@ -790,6 +1047,18 @@ export function MapProvider({ children }: { children: ReactNode }) {
 
     try {
       setIsLoading(true)
+
+      // Clear inactivity timeout
+      if (inactivityTimeoutRef.current) {
+        window.clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
+      }
+
+      // Clear location update timeout
+      if (locationUpdateTimeoutRef.current) {
+        window.clearTimeout(locationUpdateTimeoutRef.current)
+        locationUpdateTimeoutRef.current = null
+      }
 
       // Clear interval
       if (locationIntervalRef.current) {
@@ -805,7 +1074,9 @@ export function MapProvider({ children }: { children: ReactNode }) {
       }
 
       // Use auth provider if available
-      if (window.authProvider?.deactivateLiveLocation) {
+      if (auth.deactivateLiveLocation) {
+        await auth.deactivateLiveLocation(currentUserLocation.id)
+      } else if (window.authProvider?.deactivateLiveLocation) {
         await window.authProvider.deactivateLiveLocation(currentUserLocation.id)
       } else {
         await pbInstance.collection("danusin_users_location").update(currentUserLocation.id, {
@@ -816,9 +1087,24 @@ export function MapProvider({ children }: { children: ReactNode }) {
       setIsSharingLocation(false)
       setLastLocationUpdate(null)
       setError(null)
+
+      // Show success toast
+      toast({
+        title: "Location Sharing Stopped",
+        description: "You are no longer sharing your location on the map.",
+        variant: "default",
+      })
     } catch (err: any) {
       console.error("Error stopping location sharing:", err)
-      setError(`Failed to stop sharing location: ${err.message}`)
+      const errorMsg = `Failed to stop sharing location: ${err.message || "Unknown error"}`
+      setError(errorMsg)
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -836,8 +1122,89 @@ export function MapProvider({ children }: { children: ReactNode }) {
         navigator.geolocation.clearWatch(window.locationWatchId)
         delete window.locationWatchId
       }
+
+      if (inactivityTimeoutRef.current) {
+        window.clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
+      }
+
+      if (locationUpdateTimeoutRef.current) {
+        window.clearTimeout(locationUpdateTimeoutRef.current)
+        locationUpdateTimeoutRef.current = null
+      }
     }
   }, [])
+
+  // Connection loss detection
+  useEffect(() => {
+    let connectionLostTimeout: number | null = null
+
+    const handleConnectionLoss = async () => {
+      console.log("Connection lost, starting 1-minute timer")
+
+      // Show toast notification
+      toast({
+        title: "Connection Lost",
+        description: "You'll be marked as inactive in 1 minute if connection isn't restored.",
+        variant: "warning",
+      })
+
+      connectionLostTimeout = window.setTimeout(async () => {
+        if (currentUserLocation?.id) {
+          console.log("Connection lost for 1 minute, marking user as inactive")
+          try {
+            if (auth.deactivateLiveLocation) {
+              await auth.deactivateLiveLocation(currentUserLocation.id)
+            } else if (window.authProvider?.deactivateLiveLocation) {
+              await window.authProvider.deactivateLiveLocation(currentUserLocation.id)
+            } else {
+              await pbInstance.collection("danusin_users_location").update(currentUserLocation.id, {
+                isactive: false,
+              })
+            }
+
+            setIsSharingLocation(false)
+            setCurrentUserLocation(null)
+
+            // Show toast notification
+            toast({
+              title: "Marked as Inactive",
+              description: "You've been marked as inactive due to connection loss.",
+              variant: "destructive",
+            })
+          } catch (err) {
+            console.error("Error marking user as inactive after connection loss:", err)
+          }
+        }
+      }, 60000) // 1 minute
+    }
+
+    const handleConnectionRestore = () => {
+      console.log("Connection restored")
+      if (connectionLostTimeout) {
+        window.clearTimeout(connectionLostTimeout)
+        connectionLostTimeout = null
+
+        // Show toast notification
+        toast({
+          title: "Connection Restored",
+          description: "Your connection has been restored.",
+          variant: "default",
+        })
+      }
+    }
+
+    window.addEventListener("offline", handleConnectionLoss)
+    window.addEventListener("online", handleConnectionRestore)
+
+    return () => {
+      window.removeEventListener("offline", handleConnectionLoss)
+      window.removeEventListener("online", handleConnectionRestore)
+      if (connectionLostTimeout) {
+        window.clearTimeout(connectionLostTimeout)
+      }
+    }
+  }, [currentUserLocation, auth, toast])
 
   return (
     <MapContext.Provider

@@ -5,6 +5,7 @@ import { MapProvider } from "@/components/map/map-provider"
 import { MapboxMap } from "@/components/map/mapbox-map"
 import { SearchPanel } from "@/components/map/search-panel"
 import { UserCard } from "@/components/map/user-card"
+import { Toaster } from "@/components/ui/toaster"
 import { Loader2 } from "lucide-react"
 import { Suspense } from "react"
 
@@ -20,6 +21,7 @@ export default function MapPage() {
 
         <div className="absolute top-4 right-4 z-10">
           <LocationControls />
+        <UserCard />
         </div>
 
         <Suspense
@@ -33,7 +35,7 @@ export default function MapPage() {
           <MapboxMap />
         </Suspense>
 
-        <UserCard />
+        <Toaster />
       </MapProvider>
     </div>
   )

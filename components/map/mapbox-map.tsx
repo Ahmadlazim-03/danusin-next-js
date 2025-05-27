@@ -1,10 +1,10 @@
 "use client"
 
+import { INDONESIA_CENTER, useMap } from "@/components/map/map-provider"
 import { Loader2 } from "lucide-react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { useEffect, useRef, useState } from "react"
-import { INDONESIA_CENTER, useMap } from "./map-provider"
 
 // Mapbox access token - replace with your own
 mapboxgl.accessToken = "pk.eyJ1IjoiYWhtYWRsYXppbSIsImEiOiJjbWFudjJscDMwMGJjMmpvcXdja29vN2h6In0.lbl0E3ixhWKnKuQ5T1aQcw"
@@ -113,7 +113,17 @@ export function MapboxMap() {
       }
     })
 
+    // Add resize handler for fullscreen changes
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize()
+      }
+    }
+
+    window.addEventListener("resize", handleResize)
+
     return () => {
+      window.removeEventListener("resize", handleResize)
       // Do not remove the map on component unmount
       // This prevents the map from being reinitialized
     }
@@ -177,7 +187,7 @@ export function MapboxMap() {
         const label = document.createElement("div")
         label.className =
           "absolute top-7 left-1/2 transform -translate-x-1/2 bg-white dark:bg-zinc-800 px-2 py-1 rounded text-xs font-medium shadow-md whitespace-nowrap"
-        label.textContent = name
+        label.textContent = name 
         label.style.display = "none" // Hide initially
 
         el.appendChild(label)
@@ -220,7 +230,7 @@ export function MapboxMap() {
   }, [userLocations, mapLoaded, selectUser, mapRef])
 
   return (
-    <div className="w-full h-screen">
+    <div className="w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm">

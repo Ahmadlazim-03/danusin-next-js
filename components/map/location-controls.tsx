@@ -1,12 +1,13 @@
 "use client"
 
 import { useAuth } from "@/components/auth/auth-provider"
+import { useMap } from "@/components/map/map-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Clock, Loader2, MapPin, MapPinOff, Users } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { AlertCircle, Clock, Loader2, MapPin, MapPinOff, RefreshCw, Users, Wifi, WifiOff } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useMap } from "./map-provider"
 
 export function LocationControls() {
   const {
@@ -20,9 +21,30 @@ export function LocationControls() {
     lastLocationUpdate,
   } = useMap()
   const { user } = useAuth()
+  const { toast } = useToast()
 
   const [permissionState, setPermissionState] = useState<PermissionState | "unknown">("unknown")
   const [timeAgo, setTimeAgo] = useState<string>("")
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+    }
+
+    const handleOffline = () => {
+      setIsOnline(false)
+    }
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [])
 
   // Format time ago for the last location update
   useEffect(() => {
@@ -80,6 +102,21 @@ export function LocationControls() {
       // Listen for permission changes
       permission.onchange = () => {
         setPermissionState(permission.state)
+
+        // Show toast when permission changes
+        if (permission.state === "granted") {
+          toast({
+            title: "Location Access Granted",
+            description: "You can now share your location on the map.",
+            variant: "default",
+          })
+        } else if (permission.state === "denied") {
+          toast({
+            title: "Location Access Denied",
+            description: "Please enable location access in your browser settings to share your location.",
+            variant: "destructive",
+          })
+        }
       }
     } catch (err) {
       console.error("Error checking location permission:", err)
@@ -94,14 +131,26 @@ export function LocationControls() {
 
   const handleStartSharing = async () => {
     if (!user) {
-      setError("You must be logged in to share your location")
+      const errorMsg = "You must be logged in to share your location"
+      setError(errorMsg)
+      toast({
+        title: "Authentication Required",
+        description: errorMsg,
+        variant: "destructive",
+      })
       return
     }
 
     await checkLocationPermission()
 
     if (permissionState === "denied") {
-      setError("Location permission is denied. Please enable location access in your browser settings.")
+      const errorMsg = "Location permission is denied. Please enable location access in your browser settings."
+      setError(errorMsg)
+      toast({
+        title: "Permission Denied",
+        description: errorMsg,
+        variant: "destructive",
+      })
       return
     }
 
@@ -109,13 +158,26 @@ export function LocationControls() {
   }
 
   return (
-    <Card className="w-80 shadow-lg">
+    <Card className="w-96 shadow-lg location-controls z-[950]">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Location Sharing</CardTitle>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Location Sharing</span>
+          {isOnline ? <Wifi className="h-4 w-4 text-green-500" /> : <WifiOff className="h-4 w-4 text-red-500" />}
+        </CardTitle>
         <CardDescription>Share your location on the map</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {!isOnline && (
+          <Alert variant="warning" className="mb-4">
+            <WifiOff className="h-4 w-4" />
+            <AlertTitle>Offline Mode</AlertTitle>
+            <AlertDescription>
+              You are currently offline. Location sharing will be disabled until your connection is restored.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {!user && (
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
@@ -128,7 +190,28 @@ export function LocationControls() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
+              <span>{error}</span>
+              {error.includes("timed out") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    setError(null)
+                    if (isSharingLocation) {
+                      stopSharingLocation().then(() => {
+                        setTimeout(() => startSharingLocation(), 1000)
+                      })
+                    } else {
+                      startSharingLocation()
+                    }
+                  }}
+                >
+                  <RefreshCw className="h-3 w-3 mr-2" /> Retry Location
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -168,9 +251,9 @@ export function LocationControls() {
             Stop Sharing
           </Button>
         ) : (
-          <Button className="w-full" onClick={handleStartSharing} disabled={isLoading || !user}>
+          <Button className="w-full" onClick={handleStartSharing} disabled={isLoading || !user || !isOnline}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
-            {!user ? "Login Required" : "Start Sharing"}
+            {!user ? "Login Required" : !isOnline ? "Offline" : "Start Sharing"}
           </Button>
         )}
       </CardFooter>

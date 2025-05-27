@@ -1,8 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/auth/auth-provider";
-import { DanusinL7Map } from "@/components/map/DanusinL7Map";
-import { LocationPrompt } from "@/components/map/location-prompt";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -629,14 +628,7 @@ export default function RealtimeMapPage() {
                     <p className="text-lg text-gray-700 dark:text-gray-300">Loading other users...</p>
                 </div>
               )}
-              <DanusinL7Map
-                currentUserMapLocation={displayedUserMapLocation}
-                otherUsersLocations={otherDanusers}
-                isSharing={isSharingLocation}
-                onMarkerClick={handleMapMarkerClick}
-                initialCenter={SURABAYA_COORDS} 
-                initialZoom={11}
-              />
+           
             </div>
           </CardContent>
         </Card>

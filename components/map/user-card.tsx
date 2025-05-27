@@ -2,6 +2,8 @@
 
 import type React from "react"
 
+import { useMap } from "@/components/map/map-provider"
+import { ProductList } from "@/components/map/product-list"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,8 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building, Clock, MapPin, Package, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useMap } from "./map-provider"
-import { ProductList } from "./product-list"
 
 export function UserCard() {
   const { selectedUser, selectUser, flyToUser, userProducts, isLoadingProducts } = useMap()
@@ -67,8 +67,8 @@ export function UserCard() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-[1000] animate-fade-in pointer-events-auto">
-      <Card className="w-96 shadow-lg max-h-[80vh] overflow-hidden flex flex-col">
+    <div className=" z-[900] animate-fade-in pointer-events-auto user-card mt-20">
+      <Card className="w-96 shadow-lg max-h-[60vh] overflow-hidden flex flex-col">
         <CardHeader className="pb-2 flex flex-row items-start justify-between">
           <div>
             <CardTitle className="text-lg">{selectedUser.name}</CardTitle>

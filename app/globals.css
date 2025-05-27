@@ -81,7 +81,6 @@
     --sidebar-ring: 142.1 76.2% 36.3%;
   }
 }
-
 @layer base {
   * {
     @apply border-border;
@@ -90,8 +89,6 @@
     @apply bg-background text-foreground;
   }
 }
-
-
 
 @keyframes fade-in {
   from {
@@ -132,4 +129,35 @@
 
 .marker-element {
   cursor: pointer !important;
+}
+
+/* Position the user card below the location controls */
+.user-card {
+  bottom: 4rem !important;
+  max-height: calc(100vh - 24rem) !important;
+  top: auto !important; /* Ensure it stays at the bottom */
+}
+
+/* Ensure user card is below location controls on mobile */
+@media (max-width: 640px) {
+  .user-card {
+    top: auto !important;
+    bottom: 1rem !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    max-width: calc(100vw - 2rem) !important;
+  }
+}
+
+@media (max-height: 768px) {
+  .user-card {
+    bottom: 1rem !important;
+    max-height: calc(100vh - 20rem) !important;
+  }
+
+  .location-controls {
+    max-height: 18rem;
+    overflow-y: auto;
+  }
 }
