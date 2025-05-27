@@ -10,6 +10,7 @@ import { Bell, ChevronRight, Flame, Heart, LayoutDashboard, Map, Menu, ShoppingC
 import Link from "next/link"
 import type { RecordModel } from "pocketbase"; // Impor RecordModel
 import { useEffect, useState } from "react"
+import PocketBase from "pocketbase";
 
 interface MobileMenuProps {
   currentUser?: RecordModel | null;
@@ -45,6 +46,16 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
   }, [open]);
 
   const closeMenu = () => setOpen(false);
+
+  const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL || "https://pocketbase.evoptech.com");
+
+  const handleLogout = () => {
+    pb.authStore.clear();
+    // setCurrentUser(null); // Sudah dihandle oleh pb.authStore.onChange
+    // setAvatarUrl(null);  // Sudah dihandle oleh pb.authStore.onChange
+    window.location.href = "/login"; // Arahkan ke login setelah logout
+  };
+
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -98,9 +109,9 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
               </div>
               <div className="flex items-center gap-2">
                 {[
-                  { icon: Bell, label: "Notifications", href: "/notifications" },
-                  { icon: Heart, label: "Wishlist", href: "/wishlist" },
-                  { icon: ShoppingCart, label: "Cart", href: "/cart" },
+                  { icon: Bell, label: "Notifications", href: "/dashboard/notification" },
+                  { icon: Heart, label: "Favorite", href: "/dashboard/favorite/products" },
+              
                 ].map(action => (
                   <Button 
                     key={action.label}
@@ -128,9 +139,9 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
           )}
 
           <div className="px-4 py-3">
-            <Button asChild className="w-full bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white dark:text-white">
-              <Link href="/" onClick={closeMenu}>
-                Store Home
+            <Button asChild className="w-full bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white dark:text-white">
+              <Link href="/" onClick={handleLogout}>
+                Logout
               </Link>
             </Button>
           </div>

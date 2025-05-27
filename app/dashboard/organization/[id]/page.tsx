@@ -133,7 +133,6 @@ export default function OrganizationManagePage() {
   const tabsConfig = [
     { value: "members", label: "Anggota", icon: Users, alwaysShow: true }, // Ganti label
     { value: "products", label: "Produk", icon: Package, roles: ["admin", "moderator"] }, // Ganti label
-    { value: "catalogs", label: "Katalog", icon: LayoutGrid, roles: ["admin", "moderator"] }, // Ganti label
     { value: "settings", label: "Pengaturan", icon: Settings, roles: ["admin"] }, // Ganti label
   ];
 
@@ -251,17 +250,6 @@ export default function OrganizationManagePage() {
                 <CardHeader><CardTitle className="text-xl">Produk Organisasi</CardTitle><CardDescription>Kelola produk yang ditawarkan oleh organisasi ini.</CardDescription></CardHeader>
                 <CardContent>
                   <OrganizationProducts organizationId={id} userRole={userRole} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {(userRole === "admin" || userRole === "moderator") && (
-            <TabsContent value="catalogs" className="mt-0">
-              <Card className="shadow-sm">
-                <CardHeader><CardTitle className="text-xl">Katalog Organisasi</CardTitle><CardDescription>Kelompokkan produk ke dalam katalog.</CardDescription></CardHeader>
-                <CardContent>
-                  <OrganizationCatalogs organizationId={id} userRole={userRole} />
                 </CardContent>
               </Card>
             </TabsContent>

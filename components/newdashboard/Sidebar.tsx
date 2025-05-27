@@ -52,7 +52,6 @@ export function Sidebar() {
               .filter((item) => isDanuser || item.showAlways)
               .map((item) => {
                 const Icon = item.icon
-                // Cek apakah item ini aktif
                 const isActive = pathname === item.url
 
                 return (
@@ -83,7 +82,6 @@ export function Sidebar() {
           </ul>
         </div>
 
-        {/* Bagian CATEGORIES - Always visible for logged in users */}
         <div
           className="bg-white/80 backdrop-blur-lg dark:bg-zinc-800/80 dark:backdrop-blur-lg
                       rounded-xl p-4 border border-neutral-200/70 dark:border-zinc-700/50
@@ -100,7 +98,7 @@ export function Sidebar() {
             {categories.map((category) => (
               <li key={category}>
                 <Link
-                  href="#" // Ganti dengan path yang sesuai jika perlu
+                  href="#"
                   className="flex items-center justify-between p-2 rounded-md transition-all duration-200 group
                            text-neutral-600 dark:text-zinc-400
                            hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70

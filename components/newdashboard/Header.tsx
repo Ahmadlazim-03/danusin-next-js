@@ -77,6 +77,7 @@ export function Header() {
     { label: "Favorit Produk", href: "/dashboard/favorites/products" },
     { label: "Profil Saya", href: "/dashboard/profile" },
     { label: "Danusin Map", href: "/dashboard/map" },
+
   ];
 
   return (
