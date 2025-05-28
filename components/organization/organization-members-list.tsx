@@ -1,52 +1,41 @@
+
 "use client"
 
-import { useAuth } from "@/components/auth/auth-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useRef, useState, useCallback, JSX } from "react";
 import { Button } from "@/components/ui/button";
-import {
-    Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
-} from "@/components/ui/command";
 import {
     Dialog, DialogClose, DialogContent, DialogDescription,
     DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import {
-    HoverCard, HoverCardContent, HoverCardTrigger,
-} from "@/components/ui/hover-card";
 import { Label } from "@/components/ui/label";
-import {
-    Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/use-toast";
 import { pb } from "@/lib/pocketbase";
-import { cn } from "@/lib/utils";
-import {
-    Building2,
-    Check,
-    ChevronsUpDown,
-    Edit3,
-    MapPin,
-    MoreHorizontal,
-    Phone,
-    Trash2,
-    UserPlus, Users as UsersIconList
+import { 
+    UserPlus, Users as UsersIconList, ChevronsUpDown, Check, Building2, 
+    MapPin, Phone, MoreHorizontal, Edit3, Trash2, ShieldQuestion 
 } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { ClientResponseError, RecordModel } from "pocketbase";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
-import { ClientResponseError, RecordModel } from "pocketbase";
-import React, { JSX, useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+    HoverCard, HoverCardContent, HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+    DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuSubContent
+} from "@/components/ui/dropdown-menu";
 
 // --- Definisi Tipe ---
 type OrganizationInfoForMember = { id: string; name: string; organization_slug?: string; };
@@ -55,7 +44,7 @@ type OrganizationRoleType = "admin" | "moderator" | "member";
 type OrganizationRoleRecord = RecordModel & { user: string; organization: string; role: OrganizationRoleType; expand?: { user?: UserDataForMember; }; };
 type MemberDisplayItem = { id: string; user: UserDataForMember; role: OrganizationRoleType; created: string; };
 
-interface OrganizationMemberItemProps {
+interface OrganizationMemberItemProps { 
     member: MemberDisplayItem;
     loggedInUserRole: string | null;
     currentUserId: string | undefined;
@@ -92,7 +81,7 @@ function MemberListSkeleton(): JSX.Element {
                     <Skeleton className="h-8 w-24 rounded-md" />
                 </div>
             </div>
-        </div>
+        </div> 
     );
 }
 
@@ -122,7 +111,7 @@ function OrganizationMemberItem({ member, loggedInUserRole, currentUserId, onUpd
     const joinDateString = member.created;
     let displayDate = 'Tanggal tidak valid';
     if (joinDateString) { const dateObj = new Date(joinDateString); if (!isNaN(dateObj.getTime())) { displayDate = dateObj.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', }); } } else { displayDate = 'Tanggal tidak tersedia'; }
-
+    
     const isSelf = user.id === currentUserId;
     const showActions = !isSelf && (
         loggedInUserRole === 'admin' ||
@@ -267,18 +256,10 @@ function InviteMemberDialog({
 }
 
 // --- Komponen Utama ---
-// Props interface untuk OrganizationMembersList
-interface OrganizationMembersListProps {
-  organizationId: string;
-  userRole: string | null;
-  canInviteMembers?: boolean; // <-- FIX: Ditambahkan di sini
-}
-
 export function OrganizationMembersList({
     organizationId,
-    userRole,
-    canInviteMembers, // <-- FIX: Destructure prop baru di sini
-}: OrganizationMembersListProps) {
+    userRole, 
+}: { organizationId: string; userRole: string | null }) {
     const [members, setMembers] = useState<MemberDisplayItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteRole, setInviteRole] = useState<OrganizationRoleType>("member");
@@ -286,10 +267,7 @@ export function OrganizationMembersList({
     const [isInviting, setIsInviting] = useState(false);
     const isMountedRef = useRef(true);
     const { user: currentUser } = useAuth();
-    // const isAdmin = userRole === "admin"; // 'isAdmin' is defined but not used. Consider using 'canInviteMembers' instead.
-                                            // Atau, if 'isAdmin' is used elsewhere, 'canInviteMembers' might be redundant
-                                            // depending on how it's derived in the parent (page.tsx).
-                                            // For now, 'canInviteMembers' passed from parent is used.
+    const isAdmin = userRole === "admin";
 
     const [selectedInvitedUserId, setSelectedInvitedUserId] = useState<string | null>(null);
     const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -316,12 +294,12 @@ export function OrganizationMembersList({
             try {
                 const result = await pb.collection("danusin_user_organization_roles").getList<OrganizationRoleRecord>(1, 100, { filter: `organization="${organizationId}"`, expand: "user", signal: controller.signal, $autoCancel: false, });
                 if (!isMountedRef.current || controller.signal.aborted) return;
-                if (result.items.length === 0) { if(isMountedRef.current) setMembers([]); }
+                if (result.items.length === 0) { if(isMountedRef.current) setMembers([]); } 
                 else {
                     const memberPromises = result.items.map(async (item) => {
                         const expandedUser = item.expand?.user as UserDataForMember | undefined;
                         let finalUserData: UserDataForMember;
-                        if (expandedUser && expandedUser.id) {
+                        if (expandedUser && expandedUser.id) { 
                             finalUserData = { ...expandedUser };
                             if (!controller.signal.aborted) {
                                 const otherOrganizationsData = await fetchOtherOrgs(expandedUser.id, organizationId, controller.signal);
@@ -361,7 +339,7 @@ export function OrganizationMembersList({
         }, 500);
         return () => clearTimeout(delayDebounceFn);
     }, [userSearchTerm, isUserComboboxOpen, members, currentUser?.id]);
-
+    
     const handleInviteMember = async () => {
         if (!selectedInvitedUserId) { toast({ title: "Error", description: "Silakan pilih pengguna yang akan diundang.", variant: "destructive" }); return; }
         if (!currentUser) { toast({ title: "Error", description: "Anda harus login untuk mengundang.", variant: "destructive" }); return; }
@@ -380,7 +358,7 @@ export function OrganizationMembersList({
         } catch (error) { console.error("Error inviting member:", error); toast({ title: "Error", description: "Gagal mengirim undangan.", variant: "destructive" });
         } finally { setIsInviting(false); }
     };
-
+    
     const handleUpdateRole = async (memberRoleId: string, newRole: OrganizationRoleType) => {
         const memberToUpdate = members.find(m => m.id === memberRoleId);
         if (!memberToUpdate) { toast({ title: "Error", description: "Anggota tidak ditemukan.", variant: "destructive"}); return; }
@@ -400,7 +378,7 @@ export function OrganizationMembersList({
             toast({ title: "Sukses", description: `Peran untuk ${memberToUpdate.user.name || memberToUpdate.user.username} telah diubah menjadi ${newRole}.` });
         } catch (error) { console.error("Error updating role:", error); toast({ title: "Error", description: "Gagal memperbarui peran anggota.", variant: "destructive" }); }
     };
-
+    
     const handleRemoveMember = async (memberRoleId: string) => {
         const memberToRemove = members.find(m => m.id === memberRoleId);
         if (!memberToRemove) { toast({ title: "Error", description: "Anggota tidak ditemukan.", variant: "destructive"}); return; }
@@ -421,12 +399,7 @@ export function OrganizationMembersList({
 
     return (
         <div className="space-y-6">
-            {/*
-              Conditionally render the invite button based on the canInviteMembers prop.
-              Previously, it was `isAdmin`. If `canInviteMembers` is directly passed from the parent
-              (page.tsx) based on `userRole === "admin"`, then using `canInviteMembers` here is correct.
-            */}
-            {canInviteMembers && (
+            {isAdmin && (
                 <div className="flex justify-end">
                     <InviteMemberDialog
                         isOpen={isInviteDialogOpen}
@@ -448,13 +421,7 @@ export function OrganizationMembersList({
                 </div>
             )}
             {members.length === 0 ? (
-                <MemberListEmptyState
-                  title="No Members Yet"
-                  description={`This organization is looking for its first members! ${canInviteMembers ? "Why not invite someone to collaborate?" : ""}`}
-                  showButton={!!canInviteMembers && !isInviteDialogOpen} // Ensure canInviteMembers is boolean for showButton
-                  onInviteClick={() => setIsInviteDialogOpen(true)}
-                  icon={UsersIconList}
-                />
+                <MemberListEmptyState title="No Members Yet" description={`This organization is looking for its first members! ${isAdmin ? "Why not invite someone to collaborate?" : ""}`} showButton={isAdmin && !isInviteDialogOpen} onInviteClick={() => setIsInviteDialogOpen(true)} icon={UsersIconList} />
             ) : (
                 <div className="bg-card shadow-md rounded-xl border border-border divide-y divide-border dark:divide-zinc-700/80">
                     {members.map((memberItem) => (
