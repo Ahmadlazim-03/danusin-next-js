@@ -144,7 +144,7 @@ function ProductCard({
     const addedByUser = product.expand?.added_by || product.added_by;
     const catalogsRaw = product.expand?.catalog || product.catalog;
     const catalogs = Array.isArray(catalogsRaw) ? catalogsRaw : (catalogsRaw ? [catalogsRaw] : []);
-    const productLink = `/dashboard/products/${product.slug || product.id}`; // Prioritaskan slug
+    const productLink = `/dashboard/products/${product.id}`; // Prioritaskan slug
 
     return (
         <motion.div
