@@ -1,208 +1,110 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth/auth-provider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { BarChart3, Building2, Globe, Home, LayoutGrid, LogOut, Menu, Package, Settings, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BarChart3, Building2, Home, LogOut, Map, MapPin, Menu, Package } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useState } from "react"
+
+// Define navigation items directly in this component to avoid import issues
+const mobileNavItems = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+  },
+  {
+    title: "Organizations",
+    href: "/dashboard/organizations",
+    icon: Building2,
+  },
+  {
+    title: "Products",
+    href: "/dashboard/products",
+    icon: Package,
+  },
+  {
+    title: "Trends",
+    href: "/dashboard/trends",
+    icon: BarChart3,
+  },
+  {
+    title: "Map",
+    href: "/dashboard/map",
+    icon: Map,
+  },
+]
 
 export function MobileSidebar() {
-  const pathname = usePathname()
-  const { user, isDanuser, logout } = useAuth()
   const [open, setOpen] = useState(false)
-
-  const isActive = (path: string) => {
-    return pathname === path || pathname?.startsWith(path + "/")
-  }
+  const pathname = usePathname()
+  const { user, logout } = useAuth()
 
   return (
-    <div className="fixed left-4 top-4 z-50 lg:hidden">
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="bg-white">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
-          <div className="flex h-full flex-col">
-            {/* Logo */}
-            <div className="flex h-16 items-center border-b px-4">
-              <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 font-bold text-white">
-                  D
-                </div>
-                <span className="text-xl font-bold">Danusin</span>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle Menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-64 p-0">
+        <div className="flex h-14 items-center border-b px-4">
+          <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setOpen(false)}>
+            <Package className="h-5 w-5 text-green-600" />
+            <span>Danusin</span>
+          </Link>
+        </div>
+        <div className="flex-1 overflow-auto py-2">
+          <nav className="grid items-start px-2 text-sm font-medium">
+            {mobileNavItems.map((item, index) => (
+              <Link
+                key={index}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+                  pathname === item.href && "bg-muted text-foreground",
+                )}
+                onClick={() => setOpen(false)}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.title}
               </Link>
+            ))}
+            <Link
+              href="/dashboard/map/start"
+              className={cn(
+                "mt-6 flex items-center gap-3 rounded-lg bg-green-600 px-3 py-2 text-white transition-all hover:bg-green-700",
+                pathname === "/dashboard/map/start" && "bg-green-700",
+              )}
+              onClick={() => setOpen(false)}
+            >
+              <MapPin className="h-4 w-4" />
+              START DANUSIN!
+            </Link>
+          </nav>
+        </div>
+        <div className="mt-auto border-t p-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name || "User"} />
+              <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <div className="text-sm font-medium">{user?.name || "User"}</div>
+              <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
             </div>
-
-            {/* Navigation */}
-            <div className="flex-1 overflow-auto p-4">
-              <div className="space-y-6">
-                {/* Dashboard Section */}
-                <div>
-                  <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Dashboard
-                  </h3>
-                  <nav className="space-y-1">
-                    <Link
-                      href="/dashboard"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/dashboard") && !pathname?.includes("/dashboard/")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Home className="h-4 w-4" />
-                      <span>Overview</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/organizations"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/dashboard/organizations")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Building2 className="h-4 w-4" />
-                      <span>Organizations</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/catalogs"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/dashboard/catalogs")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                      <span>Catalogs</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/products"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/dashboard/products")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Package className="h-4 w-4" />
-                      <span>Products</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/map"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/dashboard/map")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Globe className="h-4 w-4" />
-                      <span>Map</span>
-                    </Link>
-                    {isDanuser && (
-                      <Link
-                        href="/dashboard/trends"
-                        className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                          isActive("/dashboard/trends")
-                            ? "bg-green-50 font-medium text-green-700"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                        onClick={() => setOpen(false)}
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Trends</span>
-                      </Link>
-                    )}
-                  </nav>
-                </div>
-
-                {/* Account Section */}
-                <div>
-                  <h3 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Account
-                  </h3>
-                  <nav className="space-y-1">
-                    <Link
-                      href="/profile"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/profile")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                        isActive("/settings")
-                          ? "bg-green-50 font-medium text-green-700"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </nav>
-                </div>
-              </div>
-            </div>
-
-            {/* User Profile */}
-            <div className="border-t p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-green-100">
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar || "/placeholder.svg"}
-                      alt={user?.name || "User"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-4 w-4 text-green-700" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{user?.name || "User"}</p>
-                  <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  onClick={() => {
-                    logout()
-                    setOpen(false)
-                  }}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="sr-only">Logout</span>
-                </Button>
-              </div>
-            </div>
+            <Button variant="ghost" size="icon" onClick={logout} title="Logout">
+              <LogOut className="h-4 w-4" />
+              <span className="sr-only">Logout</span>
+            </Button>
           </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

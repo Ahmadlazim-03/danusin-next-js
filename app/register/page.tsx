@@ -1,25 +1,37 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/components/auth/auth-provider"
+import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useEffect, useState } from "react"
 import { FaGoogle } from "react-icons/fa"
 
 export default function RegisterPage() {
   const [name, setName] = useState("")
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [passwordConfirm, setPasswordConfirm] = useState("")
+  const [isDanuser, setIsDanuser] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { register, loginWithGoogle } = useAuth()
+  const { user, register, loginWithGoogle } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
+
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      router.push("/register/keywords")
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,14 +45,25 @@ export default function RegisterPage() {
       return
     }
 
+    if (!username.trim()) {
+      toast({
+        title: "Username required",
+        description: "Please enter a username.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      await register(email, password, passwordConfirm, name)
+      await register(email, password, passwordConfirm, name, username, isDanuser)
       toast({
         title: "Registration successful",
         description: "Your account has been created. Please select your interests.",
       })
+      // The auth provider should automatically update the user state,
+      // which will trigger the useEffect above to redirect to dashboard
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -55,16 +78,48 @@ export default function RegisterPage() {
   const handleGoogleRegister = async () => {
     setIsLoading(true)
     try {
-      await loginWithGoogle()
-    } catch (error) {
+      await loginWithGoogle(isDanuser)
       toast({
-        title: "Google registration failed",
-        description: "There was an error registering with Google. Please try again.",
-        variant: "destructive",
+        title: "Google registration successful",
+        description: "Welcome to Danusin!",
       })
+      // The auth provider should automatically update the user state,
+      // which will trigger the useEffect above to redirect to dashboard
+    } catch (error: any) {
+      const errorMsg = String(error?.message || error || "").toLowerCase()
+      const isCancellation =
+        errorMsg.includes("cancel") ||
+        errorMsg.includes("closed by user") ||
+        errorMsg.includes("popup_closed_by_user") ||
+        errorMsg.includes("cancelled") ||
+        errorMsg.includes("popup window closed")
+
+      if (!isCancellation) {
+        toast({
+          title: "Google registration failed",
+          description: "There was an error registering with Google. Please try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Don't render the form if user is already logged in (prevents flash of content)
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            </div>
+            <p className="text-center mt-4 text-muted-foreground">Redirecting to dashboard...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -93,6 +148,16 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -125,8 +190,24 @@ export default function RegisterPage() {
                 required
               />
             </div>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="isDanuser" className="flex flex-col space-y-1">
+                <span>Register as Danuser</span>
+                <span className="font-normal text-xs text-muted-foreground">
+                  Danusers can create organizations and manage catalogs
+                </span>
+              </Label>
+              <Switch id="isDanuser" checked={isDanuser} onCheckedChange={setIsDanuser} />
+            </div>
             <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
         </CardContent>

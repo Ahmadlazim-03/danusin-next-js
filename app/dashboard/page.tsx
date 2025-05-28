@@ -1,28 +1,24 @@
-import { Suspense } from "react"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import { DashboardCards } from "@/components/dashboard/dashboard-cards"
-import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton"
-import { OrganizationsList } from "@/components/dashboard/organizations-list"
-import { CatalogsList } from "@/components/dashboard/catalogs-list"
 
-export default function DashboardPage() {
+import { HeroCarousel } from "@/components/hero-carousel";
+import { Categories } from "@/components/newdashboard/Categories";
+import FeaturedGames from "@/components/newdashboard/FeaturedGames";
+import  LiveStreams  from "@/components/newdashboard/LiveStream";
+import { RecentlyUpdated } from "@/components/newdashboard/RecentlyUpdated";
+import SpecialOffers  from "@/components/newdashboard/SpecialOffers";
+import { Award, ChevronDown, Gamepad2, Tag, Trophy, Zap } from "lucide-react";
+
+export default function Home() {
+
   return (
-    <div className="space-y-8">
-      <DashboardHeader />
-
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardCards />
-      </Suspense>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-white" />}>
-          <OrganizationsList />
-        </Suspense>
-
-        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-white" />}>
-          <CatalogsList />
-        </Suspense>
-      </div>
-    </div>
-  )
+    
+          <main >
+            <HeroCarousel />
+            <FeaturedGames />
+            <SpecialOffers />
+            <Categories />
+            <RecentlyUpdated />
+            <LiveStreams />
+          </main>
+     
+  );
 }

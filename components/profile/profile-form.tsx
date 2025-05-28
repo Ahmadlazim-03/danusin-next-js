@@ -2,16 +2,18 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
-import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Camera, Loader2, User } from "lucide-react"
+import { pb } from "@/lib/pocketbase"
+import { Camera, Loader2, MapPin, User } from "lucide-react"
+import { useRef, useState } from "react"
+
+const USERS_COLLECTION = "danusin_users"
 
 type ProfileFormProps = {
   user: any
@@ -21,11 +23,16 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(user?.name || "")
+  const [phone, setPhone] = useState(user?.phone || "") // Phone is stored and handled as a string
   const [bio, setBio] = useState(user?.bio || "")
-  const [location, setLocation] = useState(user?.location_text || "")
+  const [location, setLocation] = useState(
+    user?.location ? `${user.location.lat},${user.location.lon}` : ""
+  )
+  const [locationAddress, setLocationAddress] = useState(user?.location_address || "")
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar || "")
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
   const { user: authUser } = useAuth()
 
   const handleAvatarClick = () => {
@@ -36,7 +43,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -46,7 +52,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
       return
     }
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
@@ -62,10 +67,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
       const formData = new FormData()
       formData.append("avatar", file)
 
-      // Update the user record with the new avatar
-      const updatedUser = await pb.collection("users").update(user.id, formData)
+      const updatedUser = await pb.collection(USERS_COLLECTION).update(user.id, formData)
 
-      // Update the avatar URL in the state
       if (updatedUser.avatar) {
         const avatarUrl = pb.files.getUrl(updatedUser, updatedUser.avatar)
         setAvatarUrl(avatarUrl)
@@ -87,16 +90,80 @@ export function ProfileForm({ user }: ProfileFormProps) {
     }
   }
 
+  const getLocation = async () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser doesn't support geolocation",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGettingLocation(true)
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        })
+      })
+
+      const coords = `${position.coords.latitude},${position.coords.longitude}`
+      setLocation(coords)
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+        )
+        const data = await response.json()
+        const address = data.display_name || "Unknown address"
+        setLocationAddress(address)
+      } catch (error) {
+        console.error("Error fetching address:", error)
+        setLocationAddress("Unable to fetch address")
+      }
+
+      toast({
+        title: "Location updated",
+        description: "Your location has been successfully captured",
+      })
+    } catch (error) {
+      console.error("Error getting location:", error)
+      toast({
+        title: "Location error",
+        description: "Failed to get your location. Please try again or enter manually.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGettingLocation(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSaving(true)
 
     try {
-      // Update user profile
-      await pb.collection("users").update(user.id, {
+      // Parse location string to object
+      let locationData: { lon: number; lat: number } | null = null
+      if (location) {
+        const [lat, lon] = location.split(",").map((coord) => parseFloat(coord.trim()))
+        if (!isNaN(lat) && !isNaN(lon)) {
+          locationData = { lat, lon }
+        } else {
+          throw new Error("Invalid location format")
+        }
+      }
+
+      await pb.collection(USERS_COLLECTION).update(user.id, {
         name,
+        phone, // Stored as a string
         bio,
-        location_text: location,
+        location: locationData,
+        location_address: locationAddress,
       })
 
       toast({
@@ -118,8 +185,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col items-center space-y-4 sm:flex-row sm:items-start sm:space-x-6 sm:space-y-0">
-        <div className="relative">
-          <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
+        <div className="relative cursor-pointer" onClick={handleAvatarClick}>
+          <Avatar className="h-24 w-24 cursor-pointer">
             {avatarUrl ? (
               <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={name} />
             ) : (
@@ -132,11 +199,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
             )}
-            <div className="absolute bottom-0 right-0 rounded-full bg-green-600 p-1 text-white shadow-sm">
-              <Camera className="h-4 w-4" />
-            </div>
           </Avatar>
+          <div className="absolute bottom-0 right-0 rounded-full z-100 bg-green-600 p-1 text-white shadow-sm">
+            <Camera className="h-4 w-4" />
+          </div>
           <input
+            title="input-image"
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
@@ -159,6 +227,17 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={phone ? "" : "Your phone number"}
+            type="tel"
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="bio">Bio</Label>
           <Textarea
             id="bio"
@@ -170,12 +249,38 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
+          <Label htmlFor="location">Location Coordinates</Label>
+          <div className="flex space-x-2">
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Latitude,Longitude"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={getLocation}
+              disabled={isGettingLocation}
+            >
+              {isGettingLocation ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <MapPin className="mr-2 h-4 w-4" />
+              )}
+              Get Location
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="locationAddress">Location Address</Label>
           <Input
-            id="location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Your location"
+            id="locationAddress"
+            value={locationAddress}
+            onChange={(e) => setLocationAddress(e.target.value)}
+            placeholder="Your address"
+            disabled
           />
         </div>
       </div>

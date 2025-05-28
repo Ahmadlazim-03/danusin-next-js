@@ -1,19 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { pb } from "@/lib/pocketbase"
 import { useAuth } from "@/components/auth/auth-provider"
-import Link from "next/link"
-import { LayoutGrid, Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { usePocketBaseQuery } from "@/hooks/use-pocketbase-query"
+import { LayoutGrid, Plus, Settings } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 type Catalog = {
   id: string
   name: string
   description: string
   created: string
+  created_by: string
+  organization_name?: string
+  by_organization?: any
 }
 
 export function CatalogsList() {
@@ -21,42 +25,60 @@ export function CatalogsList() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Use the custom hook to fetch catalogs created by the user
+  const { data: createdCatalogsData, isLoading: isLoadingCreated } = usePocketBaseQuery({
+    collection: "danusin_catalog",
+    queryParams: {
+      filter: user ? `created_by="${user.id}"` : "",
+    },
+    enabled: !!user && isDanuser,
+  })
+
+  // Use the custom hook to fetch catalogs the user has access to
+  const { data: catalogAccessData, isLoading: isLoadingAccess } = usePocketBaseQuery({
+    collection: "danusin_catalog_user",
+    queryParams: {
+      filter: user ? `user_id="${user.id}"` : "",
+      expand: "catalog_id",
+    },
+    enabled: !!user,
+  })
+
   useEffect(() => {
-    async function fetchCatalogs() {
-      if (!user) return
-
-      try {
-        let catalogsData: Catalog[] = []
-
-        if (isDanuser) {
-          // For danusers, get catalogs they created
-          const result = await pb.collection("danusin_catalog").getList(1, 10, {
-            filter: `created_by="${user.id}"`,
-            sort: "-created",
-          })
-          catalogsData = result.items as unknown as Catalog[]
-        } else {
-          // For regular users, get catalogs they have access to
-          const result = await pb.collection("danusin_catalog_user").getList(1, 10, {
-            filter: `user_id="${user.id}"`,
-            expand: "catalog_id",
-            sort: "-created",
-          })
-          catalogsData = result.items.map((item: any) => item.expand?.catalog_id).filter(Boolean)
-        }
-
-        setCatalogs(catalogsData)
-      } catch (error) {
-        console.error("Error fetching catalogs:", error)
-      } finally {
-        setLoading(false)
-      }
+    if (!user || (isLoadingCreated && isDanuser) || isLoadingAccess) {
+      return
     }
 
-    fetchCatalogs()
-  }, [user, isDanuser])
+    setLoading(true)
 
-  if (loading) {
+    try {
+      const allCatalogs: Catalog[] = []
+
+      // Add catalogs created by the user
+      if (createdCatalogsData && createdCatalogsData.items) {
+        allCatalogs.push(...createdCatalogsData.items)
+      }
+
+      // Add catalogs the user has access to
+      if (catalogAccessData && catalogAccessData.items) {
+        catalogAccessData.items.forEach((access: any) => {
+          if (access.expand?.catalog_id && !allCatalogs.some((c) => c.id === access.expand.catalog_id.id)) {
+            allCatalogs.push(access.expand.catalog_id)
+          }
+        })
+      }
+
+      setCatalogs(allCatalogs)
+    } catch (error) {
+      console.error("Error processing catalogs:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [user, createdCatalogsData, catalogAccessData, isLoadingCreated, isLoadingAccess, isDanuser])
+
+  const canCreateCatalog = isDanuser
+
+  if (loading || isLoadingCreated || isLoadingAccess) {
     return (
       <Card className="border-green-100 bg-white">
         <CardHeader className="pb-0">
@@ -87,7 +109,7 @@ export function CatalogsList() {
           <h2 className="text-xl font-bold">Your Catalogs</h2>
           <p className="text-sm text-muted-foreground">Catalogs you've created or have access to</p>
         </div>
-        {isDanuser && (
+        {canCreateCatalog && (
           <Button asChild size="sm" className="bg-green-600 hover:bg-green-700">
             <Link href="/dashboard/catalogs/new">
               <Plus className="mr-1 h-4 w-4" /> New
@@ -103,11 +125,11 @@ export function CatalogsList() {
             </div>
             <h3 className="mb-1 text-lg font-medium">No catalogs yet</h3>
             <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-              {isDanuser
+              {canCreateCatalog
                 ? "Create your first catalog to start adding products."
                 : "You don't have access to any catalogs yet."}
             </p>
-            {isDanuser && (
+            {canCreateCatalog && (
               <Button asChild className="bg-green-600 hover:bg-green-700">
                 <Link href="/dashboard/catalogs/new">Create Catalog</Link>
               </Button>
@@ -121,11 +143,28 @@ export function CatalogsList() {
                   <LayoutGrid className="h-5 w-5 text-green-700" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-medium">{catalog.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">{catalog.name}</h3>
+                    {catalog.organization_name && <Badge variant="outline">{catalog.organization_name}</Badge>}
+                  </div>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{catalog.description}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Created: {new Date(catalog.created).toLocaleDateString()}
-                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/dashboard/catalogs/${catalog.id}`}>View</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/dashboard/catalogs/${catalog.id}/edit`}>
+                        <Settings className="mr-1 h-3 w-3" /> Manage
+                      </Link>
+                    </Button>
+                    {catalog.by_organization && (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/products/new?catalog=${catalog.id}&org=${catalog.by_organization}`}>
+                          <Plus className="mr-1 h-3 w-3" /> Add Product
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

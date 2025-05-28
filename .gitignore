@@ -5,11 +5,12 @@
 
 # next.js
 /.next/
+
 /out/
 
 # production
 /build
-
+/danusin-trend
 # debug
 npm-debug.log*
 yarn-debug.log*
