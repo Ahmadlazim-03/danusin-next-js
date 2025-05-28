@@ -1,34 +1,72 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth/auth-provider"
-import { ChevronRight, Flame, LayoutDashboard, Locate, Map, Tag, Telescope, TrendingUp, Users } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/auth/auth-provider";
+import {
+  ChevronRight,
+  Flame,
+  LayoutDashboard,
+  Locate,
+  Map,
+  Tag,
+  Telescope,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Sidebar() {
-  const pathname = usePathname()
-  const { user } = useAuth()
+  const pathname = usePathname();
+  const { user } = useAuth();
 
   // Check if user is a danuser
-  const isDanuser = user?.isdanuser === true
+  const isDanuser = user?.isdanuser === true;
 
-  const categories = ["Action", "Adventure", "RPG", "Strategy", "Simulation"]
-  const trendingTags = ["Open World", "RPG", "Souls-like", "FPS", "Multiplayer", "Roguelike", "Survival"]
+  const categories = ["Action", "Adventure", "RPG", "Strategy", "Simulation"];
+  const trendingTags = [
+    "Open World",
+    "RPG",
+    "Souls-like",
+    "FPS",
+    "Multiplayer",
+    "Roguelike",
+    "Survival",
+  ];
 
   // Define menu items
   const discoverMenuItems = [
     { label: "Explore", icon: Telescope, url: "/dashboard", showAlways: true },
-    { label: "Your Dashboard", icon: LayoutDashboard, url: "/dashboard/manage", showAlways: false },
-    { label: "Organization", icon: Users, url: "/dashboard/organization", showAlways: false },
-    { label: "Trends", icon: Flame, url: "/dashboard/trend", showAlways: false },
-    { label: "Map Explorer", icon: Map, url: "/dashboard/maps", showAlways: false },
-  ]
+    {
+      label: "Your Dashboard",
+      icon: LayoutDashboard,
+      url: "/dashboard/manage",
+      showAlways: false,
+    },
+    {
+      label: "Organization",
+      icon: Users,
+      url: "/dashboard/organization",
+      showAlways: false,
+    },
+    {
+      label: "Trends",
+      icon: Flame,
+      url: "/dashboard/trend",
+      showAlways: false,
+    },
+    {
+      label: "Map Explorer",
+      icon: Map,
+      url: "/dashboard/maps",
+      showAlways: true,
+    },
+  ];
 
   // If user is not logged in, don't display anything
   if (!user) {
-    return null
+    return null;
   }
 
   return (
@@ -51,8 +89,8 @@ export function Sidebar() {
             {discoverMenuItems
               .filter((item) => isDanuser || item.showAlways)
               .map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.url
+                const Icon = item.icon;
+                const isActive = pathname === item.url;
 
                 return (
                   <li key={item.label}>
@@ -72,12 +110,22 @@ export function Sidebar() {
                         className={`mr-2.5 h-4 w-4 text-neutral-400 dark:text-zinc-400
                                    group-hover:text-emerald-500 dark:group-hover:text-emerald-300
                                    transition-colors duration-200 group-hover:scale-110
-                                   ${isActive ? "text-emerald-600 dark:text-emerald-300" : ""}`}
+                                   ${
+                                     isActive
+                                       ? "text-emerald-600 dark:text-emerald-300"
+                                       : ""
+                                   }`}
                       />
-                      <span className={`text-xs ${isActive ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                      <span
+                        className={`text-xs ${
+                          isActive ? "font-semibold" : "font-medium"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </Link>
                   </li>
-                )
+                );
               })}
           </ul>
         </div>
@@ -98,7 +146,7 @@ export function Sidebar() {
             {categories.map((category) => (
               <li key={category}>
                 <Link
-                  href="#"
+                  href={`/dashboard/${category.toLowerCase()}`}
                   className="flex items-center justify-between p-2 rounded-md transition-all duration-200 group
                            text-neutral-600 dark:text-zinc-400
                            hover:bg-emerald-50/80 dark:hover:bg-zinc-700/70
@@ -158,5 +206,5 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
-  )
+  );
 }
