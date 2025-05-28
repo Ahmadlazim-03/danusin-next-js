@@ -1,18 +1,18 @@
 "use client"
 
-import { useRef } from "react"
-import { Line } from "react-chartjs-2"
 import {
-  Chart as ChartJS,
   CategoryScale,
+  Chart as ChartJS,
+  Legend,
   LinearScale,
-  PointElement,
   LineElement,
+  PointElement,
   Title,
   Tooltip,
-  Legend,
   type ChartData,
 } from "chart.js"
+import { useRef } from "react"
+import { Line } from "react-chartjs-2"
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
