@@ -3,21 +3,47 @@
 import { useMap } from "@/components/map/map-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button"; // Import Button
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { AlertCircle, Building, Eye, Package2, Store } from "lucide-react";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
+
+// Define interfaces for the data structures used in this component
+interface Product {
+  id: string;
+  name: string;
+  description?: string; // Optional, might contain HTML initially
+  price: number;
+  discount?: number | null; // Can be undefined, null, or a number
+  images: string[]; // Array of image URLs
+  organizationName?: string;
+  organizationSlug?: string;
+}
+
+interface SelectedUser {
+  name?: string; // User's display name
+  organizationName?: string; // Name of the organization the user might be associated with
+  organizationId?: string | number | null; // ID of that organization
+  // Add other user properties if available and needed by other components
+}
+
+// Define the expected shape from useMap for this component
+interface MapContextForProductList {
+  userProducts: Product[];
+  isLoadingProducts: boolean;
+  selectedUser: SelectedUser | null;
+}
 
 export function ProductList() {
-  const { userProducts, isLoadingProducts, selectedUser } = useMap()
-  const router = useRouter() // Initialize useRouter
-
+  // Apply type assertion to the hook's return value
+  const { userProducts, isLoadingProducts, selectedUser } = useMap() as MapContextForProductList;
+  const router = useRouter();
 
   if (isLoadingProducts) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 animate-pulse">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-4 w-16" />
@@ -25,7 +51,7 @@ export function ProductList() {
         {[1, 2, 3].map((i) => (
           <Card key={i} className="overflow-hidden">
             <div className="aspect-video relative">
-              <Skeleton className="absolute inset-0" />
+              <Skeleton className="absolute inset-0 w-full h-full" />
             </div>
             <CardContent className="p-3 space-y-2">
               <Skeleton className="h-5 w-full" />
@@ -35,114 +61,128 @@ export function ProductList() {
           </Card>
         ))}
       </div>
-    )
+    );
   }
 
-  if (userProducts.length === 0) {
+  if (!userProducts || userProducts.length === 0) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center text-center h-full">
-        <Store className="h-12 w-12 text-gray-400 mb-2" />
-        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No Products Found</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      <div className="p-6 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
+        <Store className="h-12 w-12 text-muted-foreground mb-3" />
+        <h3 className="text-lg font-semibold text-foreground">No Products Found</h3>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs">
           {selectedUser?.organizationName
             ? `${selectedUser.organizationName} hasn't added any products yet.`
-            : "This user isn't associated with any organization or products."}
+            : selectedUser?.name
+              ? `${selectedUser.name} is not currently associated with any products.`
+              : "No products are available for the current selection."}
         </p>
 
-        {!selectedUser?.organizationId && (
-          <Alert variant="warning" className="mt-4">
+        {selectedUser && !selectedUser.organizationId && (
+          <Alert variant="default" className="mt-6 text-left max-w-xs">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Organization Found</AlertTitle>
+            <AlertTitle>No Organization Link</AlertTitle>
             <AlertDescription>
-              This user isn't associated with any organization. Products are linked to organizations.
+              This user doesn't seem to be linked to an organization. Products are typically associated with organizations.
             </AlertDescription>
           </Alert>
         )}
       </div>
-    )
+    );
   }
 
   const handleViewMore = (productId: string) => {
-    router.push(`/dashboard/products/${productId}`)
-  }
+    router.push(`/dashboard/products/${productId}`);
+  };
+
+  // Define placeholder image URL
+  const placeholderImage = "/placeholder.svg?height=200&width=300";
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium flex items-center">
-          <Package2 className="h-4 w-4 mr-1 text-blue-500" />
-          {selectedUser?.organizationName ? `${selectedUser.organizationName}'s Products` : "Products"}
+        <h3 className="text-base font-semibold flex items-center text-foreground">
+          <Package2 className="h-5 w-5 mr-2 text-primary" />
+          {selectedUser?.organizationName ? `${selectedUser.organizationName}'s Products` : "Available Products"}
         </h3>
-        <Badge variant="outline">{userProducts.length} items</Badge>
+        <Badge variant="secondary">{userProducts.length} item{userProducts.length === 1 ? "" : "s"}</Badge>
       </div>
 
       <div className="space-y-3">
         {userProducts.map((product) => {
-          const discountedPrice = product.discount ? product.price * (1 - product.discount / 100) : product.price
-          const showDiscount = product.discount > 0 && discountedPrice > 0
+          const discountedPrice = product.discount && product.price ? product.price * (1 - product.discount / 100) : product.price;
+          const showDiscount = typeof product.discount === 'number' && product.discount > 0 && product.price > discountedPrice;
 
           return (
-            <Card key={product.id} className="overflow-hidden">
-              {product.images.length > 0 && (
-                <div className="aspect-video relative bg-gray-100 dark:bg-gray-800">
+            <Card key={product.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              {product.images && product.images.length > 0 && (
+                <div className="aspect-[16/10] relative bg-muted">
                   <img
-                    src={product.images[0] || "/placeholder.svg?height=200&width=300"}
-                    alt={product.name}
+                    src={product.images[0]} // Use the first image
+                    alt={product.name || "Product image"}
                     className="absolute inset-0 w-full h-full object-cover"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=200&width=300"
+                      const target = e.target as HTMLImageElement;
+                      // Prevent infinite loop if placeholder itself fails
+                      if (target.src !== placeholderImage) {
+                        target.src = placeholderImage;
+                      }
                     }}
+                    loading="lazy" // Add lazy loading for images
                   />
                 </div>
               )}
               <CardContent className="p-3">
-                <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
+                <h4 className="font-semibold text-sm line-clamp-1" title={product.name}>{product.name}</h4>
                 {product.description && (
                   <CardDescription className="text-xs mt-1 line-clamp-2">
+                    {/* Basic HTML stripping. For complex HTML, consider a library or server-side processing. */}
                     {product.description.replace(/<[^>]*>?/gm, "")}
                   </CardDescription>
                 )}
 
                 {product.organizationName && (
-                  <div className="mt-2 flex items-center text-xs text-gray-500">
-                    <Building className="h-3 w-3 mr-1 text-blue-500" />
+                  <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                    <Building className="h-3.5 w-3.5 mr-1.5 text-primary" />
                     <span>{product.organizationName}</span>
                   </div>
                 )}
 
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2.5 flex items-end justify-between">
                   <div>
-                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                    <span className="text-base font-bold text-primary">
                       {formatCurrency(discountedPrice)}
                     </span>
-                    {showDiscount && (
-                      <span className="text-xs line-through ml-1 text-gray-500">{formatCurrency(product.price)}</span>
+                    {showDiscount && typeof product.price === 'number' && (
+                      <span className="text-xs line-through ml-1.5 text-muted-foreground">{formatCurrency(product.price)}</span>
                     )}
                   </div>
-                  {showDiscount && <Badge className="text-xs">{product.discount}% OFF</Badge>}
+                  {showDiscount && typeof product.discount === 'number' && <Badge variant="destructive" className="text-xs">{product.discount}% OFF</Badge>}
                 </div>
               </CardContent>
-              <CardFooter className="p-3 pt-0 flex justify-between items-center">
-                <div className="text-xs text-gray-500">ID: {product.id.substring(0, 8)}...</div>
+              <CardFooter className="p-3 pt-1 flex justify-between items-center bg-muted/50">
+                <div className="text-xs text-muted-foreground" title={product.id}>
+                  ID: {product.id.substring(0, 8)}...
+                </div>
                 {product.organizationSlug && (
                   <Badge variant="outline" className="text-xs">
                     {product.organizationSlug}
                   </Badge>
                 )}
-                 <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleViewMore(product.id)}
-                  className="ml-auto" // Push button to the right if no org slug
+                  className={!product.organizationSlug ? "ml-auto" : ""} // Ensure button alignment
+                  aria-label={`View more details for ${product.name}`}
                 >
                   <Eye className="h-3.5 w-3.5 mr-1.5" />
-                  View More
+                  View
                 </Button>
               </CardFooter>
             </Card>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

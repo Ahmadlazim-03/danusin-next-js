@@ -1,16 +1,16 @@
 "use client"
 
-import type React from "react"
-import mapboxgl from "mapbox-gl" // Corrected import
 import type { GeoJSONSource, LngLatLike } from "mapbox-gl"
+import mapboxgl from "mapbox-gl"; // Corrected import
 import type PocketBase from "pocketbase"
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode, useCallback } from "react"
+import type React from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 
 import { useAuth } from "@/components/auth/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { pb } from "@/lib/pocketbase"
+export const INDONESIA_CENTER: [number, number] =[118.0, -2.5];
 
-export const INDONESIA_CENTER = [118.0, -2.5]
 const LOCATION_UPDATE_INTERVAL = 10000
 const INACTIVITY_TIMEOUT = 120000 // 2 minutes
 const LOCATION_UPDATE_DEBOUNCE = 2000 // 2 seconds

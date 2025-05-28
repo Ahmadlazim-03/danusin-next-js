@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import Image from 'next/image';
+import AOS from "aos";
 import createGlobe from 'cobe';
-import AOS from "aos"
+import Image from 'next/image';
+import { useEffect, useRef } from 'react';
 
 export default function About() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -153,7 +153,7 @@ export default function About() {
                     <div>
                       <h4 className="profile-name">EVOP Tech Company</h4>
                       <a href="https://evoptech.com" className="profile-position">
-                        evop.tech.com
+                        evop.tech
                       </a>
                     </div>
                   </div>
