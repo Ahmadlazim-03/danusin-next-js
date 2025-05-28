@@ -2,37 +2,41 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { pb } from '@/lib/pocketbase';
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Plus, Package, ExternalLink, UserCircle, Loader2, UserCheck } from "lucide-react"; // Pastikan Loader2 & UserCheck ada
+import { RecordModel, ClientResponseError } from 'pocketbase';
+import { 
+    LayoutGrid, Package, ArrowLeft, AlertTriangle, Plus, 
+    Building2, ExternalLink, UserCircle, Loader2, UserCheck 
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from '@/components/auth/auth-provider';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { toast } from '@/components/ui/use-toast';
-import { ClientResponseError, RecordModel } from 'pocketbase'; // Pastikan RecordModel diimpor
+import { cn } from "@/lib/utils"; // Asumsi cn ada di utils
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Jika masih menggunakan tooltip di ProductCard atau tempat lain
+import { motion } from "framer-motion"; // Jika ProductCard masih menggunakan motion
+
 
 // --- 1. DEFINISIKAN TIPE DATA ---
-interface CreatorData extends RecordModel { // Gunakan RecordModel jika ini dari PocketBase
-    // id, collectionId, collectionName, created, updated sudah ada dari RecordModel
+interface CreatorData extends RecordModel {
     name?: string;
     username?: string;
     avatar?: string;
 }
 
-interface OrganizationDisplayData extends RecordModel { // Gunakan RecordModel
-    // id, collectionId, collectionName, created, updated sudah ada dari RecordModel
+interface OrganizationDisplayData extends RecordModel {
     organization_name: string;
     organization_description?: string;
     organization_image?: string;
     organization_slug: string;
     target?: number;
     target_progress?: number;
-    // created_by seharusnya adalah ID string, dan di-expand
     created_by: string; 
     expand?: {
         created_by?: CreatorData;
@@ -44,19 +48,19 @@ interface OrganizationCardProps {
     organization: OrganizationDisplayData;
     currentUser: any | null; 
     isAlreadyMember: boolean;
-    onJoinSuccess: () => void; 
+    // onJoinSuccess tidak lagi diperlukan jika tombol join dihapus
 }
 
-function OrganizationDisplayCard({ organization, currentUser, isAlreadyMember, onJoinSuccess }: OrganizationCardProps) {
-    const [isJoining, setIsJoining] = useState(false);
+function OrganizationDisplayCard({ organization, currentUser, isAlreadyMember }: OrganizationCardProps) {
+    // State isJoining dan fungsi handleJoinOrganization dihapus
 
-    const imageUrl = organization.organization_image && organization.collectionId && organization.id // Gunakan org.id
+    const imageUrl = organization.organization_image && organization.collectionId && organization.id
         ? pb.getFileUrl(organization, organization.organization_image, { thumb: "480x270" })
-        : "/placeholder.svg?height=270&width=480&text=" + encodeURIComponent(organization.organization_name.substring(0,2).toUpperCase());
+        : `/placeholder.svg?height=270&width=480&text=${encodeURIComponent(organization.organization_name.substring(0,2).toUpperCase())}`;
 
     const creator = organization.expand?.created_by;
     const creatorName = creator?.name || creator?.username || "Tidak Diketahui";
-    const creatorAvatarUrl = (creator && creator.avatar && creator.collectionId && creator.id) // Gunakan creator.id
+    const creatorAvatarUrl = (creator && creator.avatar && creator.collectionId && creator.id)
         ? pb.getFileUrl(creator, creator.avatar, { thumb: "100x100" })
         : null;
 
@@ -64,44 +68,16 @@ function OrganizationDisplayCard({ organization, currentUser, isAlreadyMember, o
     const progressPercentage = canShowProgress && organization.target_progress != null
         ? Math.min(Math.round((organization.target_progress / organization.target!) * 100), 100)
         : 0;
-
-    const handleJoinOrganization = async () => {
-        if (!currentUser || !organization) {
-            toast({ title: "Error", description: "Tidak bisa bergabung, pengguna atau organisasi tidak valid.", variant: "destructive" });
-            return;
-        }
-        setIsJoining(true);
-        try {
-            await pb.collection('danusin_user_organization_roles').create({
-                user: currentUser.id,
-                organization: organization.id,
-                role: "member",
-            });
-            toast({ title: "Berhasil Bergabung!", description: `Anda telah bergabung dengan ${organization.organization_name}.` });
-            onJoinSuccess(); 
-        } catch (err: any) {
-            console.error("Failed to join organization:", err);
-            let errMsg = "Gagal bergabung dengan organisasi.";
-            if (err instanceof ClientResponseError && (
-                err.data?.data?.user?.message?.includes('unique') || 
-                err.data?.data?.organization?.message?.includes('unique') ||
-                err.data?.data?.user?.code === "validation_not_unique" || 
-                err.data?.data?.organization?.code === "validation_not_unique")) {
-                 errMsg = "Anda sudah menjadi anggota organisasi ini.";
-                 onJoinSuccess(); 
-            } else if (err.message) {
-                errMsg = err.message;
-            }
-            toast({ title: "Gagal Bergabung", description: errMsg, variant: "destructive" });
-        } finally {
-            setIsJoining(false);
-        }
-    };
     
     const detailLink = `/dashboard/organization/view/${organization.id}`;
 
     return (
-        <div className="group relative rounded-lg overflow-hidden bg-card dark:bg-zinc-800/70 border border-border dark:border-zinc-700/60 transition-all duration-300 hover:shadow-xl hover:border-emerald-500/50 dark:hover:border-emerald-500/40 flex flex-col h-full">
+        <div className="group relative rounded-lg overflow-hidden 
+                        bg-card dark:bg-zinc-800/70 
+                        border border-border dark:border-zinc-700/60 
+                        transition-all duration-300 
+                        hover:shadow-xl hover:border-emerald-500/50 dark:hover:border-emerald-500/40
+                        flex flex-col h-full">
             <Link href={detailLink} passHref>
                 <div className="aspect-video relative overflow-hidden cursor-pointer">
                     <Image
@@ -110,7 +86,7 @@ function OrganizationDisplayCard({ organization, currentUser, isAlreadyMember, o
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-                        onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = "/placeholder.svg?height=270&width=480&text=Gagal+Muat"; }}
+                        onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = `/placeholder.svg?height=270&width=480&text=${encodeURIComponent(organization.organization_name.substring(0,2).toUpperCase()) || 'Error'}`; }}
                     />
                 </div>
             </Link>
@@ -142,23 +118,15 @@ function OrganizationDisplayCard({ organization, currentUser, isAlreadyMember, o
                     </div>
                 )}
 
+                {/* Tombol Aksi Disesuaikan */}
                 <div className="mt-auto pt-3 flex flex-col sm:flex-row sm:justify-end gap-2">
                     <Button asChild variant="ghost" size="sm" className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-300 px-3 py-1.5 h-auto rounded-md w-full sm:w-auto justify-center">
                         <Link href={detailLink}>
                             <ExternalLink className="mr-1.5 h-4 w-4" /> Lihat Detail
                         </Link>
                     </Button>
-                    {currentUser && !isAlreadyMember && (
-                        <Button
-                            onClick={handleJoinOrganization}
-                            disabled={isJoining}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 h-auto rounded-md w-full sm:w-auto justify-center"
-                        >
-                            {isJoining ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plus className="mr-1.5 h-4 w-4" />}
-                            Join Organisasi
-                        </Button>
-                    )}
+                    {/* Tombol Join Organisasi Dihapus */}
+                    {/* Informasi Keanggotaan Tetap Ditampilkan */}
                     {currentUser && isAlreadyMember && (
                          <Badge variant="outline" className="py-1.5 px-3 text-sm border-green-500 text-green-600 flex items-center justify-center self-center sm:self-auto w-full sm:w-auto">
                             <UserCheck className="mr-1.5 h-4 w-4" />
@@ -206,40 +174,32 @@ function OrganizationListSkeleton() {
 // --- 3. DEFINISIKAN KOMPONEN HALAMAN UTAMA (Default Export) ---
 export default function AllOrganizationsPage() {
     const [organizations, setOrganizations] = useState<OrganizationDisplayData[]>([]);
-    const [loading, setLoading] = useState(true); // Loading untuk daftar organisasi utama
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { user: currentUser, isDanuser } = useAuth(); 
+    const router = useRouter();
 
     const [joinedOrganizationIds, setJoinedOrganizationIds] = useState<Set<string>>(new Set());
-    const [loadingUserMemberships, setLoadingUserMemberships] = useState(true); // Loading untuk data keanggotaan
+    const [loadingUserMemberships, setLoadingUserMemberships] = useState(true);
 
     const fetchUserMemberships = useCallback(async (userId: string, signal?: AbortSignal) => {
-        if (!userId) {
-            setJoinedOrganizationIds(new Set());
-            setLoadingUserMemberships(false);
-            return;
-        }
-        // Tidak set setLoadingUserMemberships(true) di sini agar tidak flicker jika dipanggil untuk refresh
+        if (!userId) { setJoinedOrganizationIds(new Set()); setLoadingUserMemberships(false); return; }
         try {
             const rolesList = await pb.collection('danusin_user_organization_roles').getFullList({
-                filter: `user="${userId}"`,
-                fields: 'organization', 
-                signal,
+                filter: `user="${userId}"`, fields: 'organization', signal, $autoCancel: false, // Tambah $autoCancel
             });
             if (!signal?.aborted) {
                  const orgIds = new Set(rolesList.map(role => role.organization));
                  setJoinedOrganizationIds(orgIds);
             }
         } catch (err: any) {
-            if (err.name !== 'AbortError' && !signal?.aborted) {
+            if (err.name !== 'AbortError' && !(err instanceof ClientResponseError && err.status === 0) && !signal?.aborted) {
                 console.error("Failed to fetch user memberships:", err);
+            } else {
+                console.log("Fetch user memberships was cancelled.");
             }
-        } finally {
-            if (!signal?.aborted) {
-                setLoadingUserMemberships(false);
-            }
-        }
-    }, []); // Hapus currentUser dari dependencies, karena sudah di-pass sebagai argumen
+        } finally { if (!signal?.aborted) { setLoadingUserMemberships(false); } }
+    }, []);
 
     useEffect(() => {
         let membershipController: AbortController | null = null;
@@ -251,10 +211,8 @@ export default function AllOrganizationsPage() {
             setJoinedOrganizationIds(new Set());
             setLoadingUserMemberships(false);
         }
-        return () => {
-            membershipController?.abort();
-        };
-    }, [currentUser, fetchUserMemberships]); // Tambahkan fetchUserMemberships
+        return () => { membershipController?.abort(); };
+    }, [currentUser, fetchUserMemberships]);
 
 
     useEffect(() => {
@@ -264,35 +222,29 @@ export default function AllOrganizationsPage() {
 
         const fetchOrganizations = async () => {
             if (!isMounted) return;
-            setLoading(true); // Loading untuk daftar organisasi
+            setLoading(true); 
             setError(null);
             try {
                 const orgsList = await pb.collection('danusin_organization').getFullList<OrganizationDisplayData>(
-                    { sort: '-created', expand: 'created_by', signal: signal }
+                    { sort: '-created', expand: 'created_by', signal: signal, $autoCancel: false } // Tambah $autoCancel
                 );
-                if (isMounted) {
+                if (isMounted && !signal.aborted) {
                     setOrganizations(orgsList);
                 }
             } catch (err: any) {
-                if (!isMounted) return;
-                if (err.name === 'AbortError' || (err.isAbort || err.message?.includes('autocancelled'))) {
-                    console.log("Fetch organizations request was cancelled.");
-                } else {
+                if (!isMounted || signal.aborted) { console.log("Fetch organizations request was cancelled."); return;}
+                if (err.name !== 'AbortError' && !(err instanceof ClientResponseError && err.status === 0)) {
                     console.error("Failed to fetch organizations:", err);
                     setError("Gagal memuat daftar organisasi.");
                     toast({ title: "Error", description: "Gagal memuat daftar organisasi. Silakan coba lagi.", variant: "destructive", });
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
+                } else { console.log("Fetch organizations request was cancelled (expected)."); }
+            } finally { if (isMounted && !signal.aborted) { setLoading(false); } }
         };
         fetchOrganizations();
         return () => { isMounted = false; controller.abort(); }
     }, []);
 
-    if (loading || loadingUserMemberships) { // Cek kedua loading state
+    if (loading || loadingUserMemberships) {
         return (
             <main className="w-full">
                 <div className="flex items-center justify-between mb-6 md:mb-8">
@@ -305,7 +257,7 @@ export default function AllOrganizationsPage() {
     }
 
     if (error) {
-        return ( <main className="w-full text-center"> <p className="text-red-500 mb-4">{error}</p> <Button onClick={() => window.location.reload()}>Coba Lagi</Button> </main> );
+        return ( <main className="w-full text-center p-4 md:p-6 lg:p-8"> <p className="text-red-500 mb-4">{error}</p> <Button onClick={() => window.location.reload()}>Coba Lagi</Button> </main> );
     }
 
     return (
@@ -340,12 +292,6 @@ export default function AllOrganizationsPage() {
                             organization={org}
                             currentUser={currentUser}
                             isAlreadyMember={joinedOrganizationIds.has(org.id)}
-                            onJoinSuccess={() => {
-                                if (currentUser?.id) {
-                                    const newController = new AbortController();
-                                    fetchUserMemberships(currentUser.id, newController.signal);
-                                }
-                            }}
                         />
                     ))}
                 </div>
