@@ -9,11 +9,23 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building, Clock, MapPin, Package, User, X } from "lucide-react"
+import { Building, Clock, Loader2, MapPin, Navigation, Package, User, X } from 'lucide-react'
 import { useEffect, useState } from "react"
 
 export function UserCard() {
-  const { selectedUser, selectUser, flyToUser, userProducts, isLoadingProducts } = useMap()
+  const { 
+    selectedUser, 
+    selectUser, 
+    flyToUser, 
+    userProducts, 
+    isLoadingProducts,
+    currentUserLocation,
+    showDirectionsToUser,
+    isLoadingRoute,
+    activeRoute,
+    navigationTarget,
+    clearRoute
+  } = useMap()
   const [timeAgo, setTimeAgo] = useState<string>("")
   const [activeTab, setActiveTab] = useState("info")
 
@@ -140,12 +152,56 @@ export function UserCard() {
                   </span>
                 </div>
               </div>
+              {navigationTarget?.id === selectedUser.id && activeRoute && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Navigation className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium text-sm text-blue-900 dark:text-blue-100">Route Information</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Distance:</span>
+                      <span className="ml-1 font-medium">{(activeRoute.distance / 1000).toFixed(1)} km</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                      <span className="ml-1 font-medium">{Math.ceil(activeRoute.duration / 60)} min</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
 
             <CardFooter className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={handleClose}>
                 Close
               </Button>
+              {currentUserLocation && !selectedUser.isCurrentUser && (
+                <>
+                  {navigationTarget?.id === selectedUser.id && activeRoute ? (
+                    <Button 
+                      variant="destructive" 
+                      className="flex-1" 
+                      onClick={clearRoute}
+                    >
+                      Clear Route
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => showDirectionsToUser(selectedUser)}
+                      disabled={isLoadingRoute}
+                    >
+                      {isLoadingRoute ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Navigation className="h-4 w-4 mr-2" />
+                      )}
+                      Get Directions
+                    </Button>
+                  )}
+                </>
+              )}
               <Button className="flex-1" onClick={handleFlyToUser}>
                 <MapPin className="h-4 w-4 mr-2" /> Fly to
               </Button>

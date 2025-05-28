@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { AlertCircle, Clock, Loader2, MapPin, MapPinOff, RefreshCw, Users, Wifi, WifiOff } from "lucide-react"
+import { AlertCircle, ChevronDown, ChevronUp, Clock, Loader2, MapPin, MapPinOff, RefreshCw, Users, Wifi, WifiOff } from "lucide-react"
 import { useEffect, useState } from "react"
 
 export function LocationControls() {
@@ -26,6 +26,7 @@ export function LocationControls() {
   const [permissionState, setPermissionState] = useState<PermissionState | "unknown">("unknown")
   const [timeAgo, setTimeAgo] = useState<string>("")
   const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [isMinimized, setIsMinimized] = useState(false)
 
   // Track online/offline status
   useEffect(() => {
@@ -136,7 +137,7 @@ export function LocationControls() {
       toast({
         title: "Authentication Required",
         description: errorMsg,
-        variant: "destructive",
+    variant: "destructive",
       })
       return
     }
@@ -157,106 +158,119 @@ export function LocationControls() {
     startSharingLocation()
   }
 
+  const toggleMinimize = () => {
+    setIsMinimized(!isMinimized)
+  }
+
   return (
     <Card className="w-96 shadow-lg location-controls z-[950]">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Location Sharing</span>
-          {isOnline ? <Wifi className="h-4 w-4 text-green-500" /> : <WifiOff className="h-4 w-4 text-red-500" />}
-        </CardTitle>
-        <CardDescription>Share your location on the map</CardDescription>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg flex items-center">
+            <span>Location Sharing</span>
+            {isOnline ? <Wifi className="h-4 w-4 text-green-500 ml-2" /> : <WifiOff className="h-4 w-4 text-red-500 ml-2" />}
+          </CardTitle>
+          <CardDescription>Share your location on the map</CardDescription>
+        </div>
+        <Button variant="ghost" size="icon" onClick={toggleMinimize}>
+          {isMinimized ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+        </Button>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {!isOnline && (
-          <Alert variant="warning" className="mb-4">
-            <WifiOff className="h-4 w-4" />
-            <AlertTitle>Offline Mode</AlertTitle>
-            <AlertDescription>
-              You are currently offline. Location sharing will be disabled until your connection is restored.
-            </AlertDescription>
-          </Alert>
-        )}
+      {!isMinimized && (
+        <>
+          <CardContent className="space-y-4">
+            {!isOnline && (
+              <Alert variant="warning" className="mb-4">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>Offline Mode</AlertTitle>
+                <AlertDescription>
+                  You are currently offline. Location sharing will be disabled until your connection is restored.
+                </AlertDescription>
+              </Alert>
+            )}
 
-        {!user && (
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Authentication Required</AlertTitle>
-            <AlertDescription>You need to be logged in to share your location.</AlertDescription>
-          </Alert>
-        )}
+            {!user && (
+              <Alert className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Authentication Required</AlertTitle>
+                <AlertDescription>You need to be logged in to share your location.</AlertDescription>
+              </Alert>
+            )}
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="flex flex-col gap-2">
-              <span>{error}</span>
-              {error.includes("timed out") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-full"
-                  onClick={() => {
-                    setError(null)
-                    if (isSharingLocation) {
-                      stopSharingLocation().then(() => {
-                        setTimeout(() => startSharingLocation(), 1000)
-                      })
-                    } else {
-                      startSharingLocation()
-                    }
-                  }}
-                >
-                  <RefreshCw className="h-3 w-3 mr-2" /> Retry Location
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription className="flex flex-col gap-2">
+                  <span>{error}</span>
+                  {error.includes("timed out") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setError(null)
+                        if (isSharingLocation) {
+                          stopSharingLocation().then(() => {
+                            setTimeout(() => startSharingLocation(), 1000)
+                          })
+                        } else {
+                          startSharingLocation()
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-2" /> Retry Location
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span className="font-medium">Active Users:</span>
-          </div>
-          <span className="font-bold text-lg">{userLocations.filter((u) => u.isActive).length}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-green-500" />
-            <span className="font-medium">Status:</span>
-          </div>
-          <span className={`font-medium ${isSharingLocation ? "text-green-500" : "text-gray-500"}`}>
-            {isSharingLocation ? "Sharing" : "Not Sharing"}
-          </span>
-        </div>
-
-        {isSharingLocation && lastLocationUpdate && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">Last Update:</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                <span className="font-medium">Active Users:</span>
+              </div>
+              <span className="font-bold text-lg">{userLocations.filter((u) => u.isActive).length}</span>
             </div>
-            <span className="font-medium text-blue-500">{timeAgo}</span>
-          </div>
-        )}
-      </CardContent>
 
-      <CardFooter>
-        {isSharingLocation ? (
-          <Button variant="destructive" className="w-full" onClick={stopSharingLocation} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPinOff className="mr-2 h-4 w-4" />}
-            Stop Sharing
-          </Button>
-        ) : (
-          <Button className="w-full" onClick={handleStartSharing} disabled={isLoading || !user || !isOnline}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
-            {!user ? "Login Required" : !isOnline ? "Offline" : "Start Sharing"}
-          </Button>
-        )}
-      </CardFooter>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-green-500" />
+                <span className="font-medium">Status:</span>
+              </div>
+              <span className={`font-medium ${isSharingLocation ? "text-green-500" : "text-gray-500"}`}>
+                {isSharingLocation ? "Sharing" : "Not Sharing"}
+              </span>
+            </div>
+
+            {isSharingLocation && lastLocationUpdate && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  <span className="font-medium">Last Update:</span>
+                </div>
+                <span className="font-medium text-blue-500">{timeAgo}</span>
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter>
+            {isSharingLocation ? (
+              <Button variant="destructive" className="w-full" onClick={stopSharingLocation} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPinOff className="mr-2 h-4 w-4" />}
+                Stop Sharing
+              </Button>
+            ) : (
+              <Button className="w-full" onClick={handleStartSharing} disabled={isLoading || !user || !isOnline}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
+                {!user ? "Login Required" : !isOnline ? "Offline" : "Start Sharing"}
+              </Button>
+            )}
+          </CardFooter>
+        </>
+      )}
     </Card>
   )
 }

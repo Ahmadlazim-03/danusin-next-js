@@ -6,11 +6,11 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { useEffect, useRef, useState } from "react"
 
-// Mapbox access token - replace with your own
-mapboxgl.accessToken = "pk.eyJ1IjoiYWhtYWRsYXppbSIsImEiOiJjbWFudjJscDMwMGJjMmpvcXdja29vN2h6In0.lbl0E3ixhWKnKuQ5T1aQcw"
+// Mapbox access token - updated to your provided key
+mapboxgl.accessToken = "pk.eyJ1IjoiZXZvcHRlY2giLCJhIjoiY21hcG85ZjhiMDByMDJqb2E1OGx4dGMyeSJ9.23o4bNoiuN4Xt9FpIfj1ow"
 
 export function MapboxMap() {
-  const { userLocations, selectUser, mapRef } = useMap()
+  const { userLocations, selectUser, mapRef, route, clearRoute } = useMap()
   const mapContainer = useRef<HTMLDivElement>(null)
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({})
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -25,7 +25,7 @@ export function MapboxMap() {
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/evoptech/cmaqp7ltj00pw01s90cexcv56", // Updated to your provided style
       center: INDONESIA_CENTER,
       zoom: 5,
       pitch: 45, // 3D view
@@ -187,7 +187,7 @@ export function MapboxMap() {
         const label = document.createElement("div")
         label.className =
           "absolute top-7 left-1/2 transform -translate-x-1/2 bg-white dark:bg-zinc-800 px-2 py-1 rounded text-xs font-medium shadow-md whitespace-nowrap"
-        label.textContent = name 
+        label.textContent = name
         label.style.display = "none" // Hide initially
 
         el.appendChild(label)
@@ -228,6 +228,85 @@ export function MapboxMap() {
       }
     })
   }, [userLocations, mapLoaded, selectUser, mapRef])
+
+  // Handle route display
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    const map = mapRef.current
+
+    // Remove existing route if any
+    if (map.getLayer("route")) {
+      map.removeLayer("route")
+    }
+
+    if (map.getSource("route")) {
+      map.removeSource("route")
+    }
+
+    // Add new route if available
+    if (route && route.geometry) {
+      // Add the route source and layer
+      map.addSource("route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: route.geometry,
+        },
+      })
+
+      map.addLayer({
+        id: "route",
+        type: "line",
+        source: "route",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#3b82f6",
+          "line-width": 6,
+          "line-opacity": 0.8,
+        },
+      })
+
+      // Add a casing line for better visibility
+      map.addLayer(
+        {
+          id: "route-casing",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#1d4ed8",
+            "line-width": 10,
+            "line-opacity": 0.4,
+          },
+          filter: ["==", "$type", "LineString"],
+        },
+        "route",
+      )
+    }
+
+    return () => {
+      // Cleanup function
+      if (map.getLayer("route")) {
+        map.removeLayer("route")
+      }
+
+      if (map.getLayer("route-casing")) {
+        map.removeLayer("route-casing")
+      }
+
+      if (map.getSource("route")) {
+        map.removeSource("route")
+      }
+    }
+  }, [route, mapLoaded, mapRef])
 
   return (
     <div className="w-full h-full">

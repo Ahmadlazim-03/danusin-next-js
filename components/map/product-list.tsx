@@ -1,15 +1,19 @@
 "use client"
 
-import { useMap } from "@/components/map/map-provider"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { formatCurrency } from "@/lib/utils"
-import { AlertCircle, Building, Package2, Store } from "lucide-react"
+import { useMap } from "@/components/map/map-provider";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // Import Button
+import { Card, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/utils";
+import { AlertCircle, Building, Eye, Package2, Store } from "lucide-react";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 export function ProductList() {
   const { userProducts, isLoadingProducts, selectedUser } = useMap()
+  const router = useRouter() // Initialize useRouter
+
 
   if (isLoadingProducts) {
     return (
@@ -56,6 +60,10 @@ export function ProductList() {
         )}
       </div>
     )
+  }
+
+  const handleViewMore = (productId: string) => {
+    router.push(`/dashboard/products/${productId}`)
   }
 
   return (
@@ -121,6 +129,15 @@ export function ProductList() {
                     {product.organizationSlug}
                   </Badge>
                 )}
+                 <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleViewMore(product.id)}
+                  className="ml-auto" // Push button to the right if no org slug
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  View More
+                </Button>
               </CardFooter>
             </Card>
           )
