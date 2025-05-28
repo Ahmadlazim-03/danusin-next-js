@@ -18,8 +18,7 @@ type CatalogListItem = RecordModel & {
     name: string;
     description?: string;
     product_count?: number;
-    slug?: string; // Pastikan ada jika digunakan untuk link
-    // organization_id?: string; // Jika terikat ke organisasi
+    slug?: string;
 };
 
 // --- Komponen Skeleton ---

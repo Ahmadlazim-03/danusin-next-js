@@ -1,11 +1,11 @@
 "use client"
 
-import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
+import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"; // Assuming you have a cn utility
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -24,15 +24,24 @@ const ToastViewport = React.forwardRef<
 ))
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
+// Define variant options with 'as const' for stricter type inference
+// Added 'info' and 'warning' variants
+const toastVariantOptions = {
+  default: "border bg-background text-foreground",
+  destructive:
+    "destructive group border-destructive bg-destructive text-destructive-foreground",
+  info: "info group border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300",
+  warning:
+    "warning group border-yellow-500 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-300",
+  success:
+    "success group border-green-500 bg-green-50 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300",
+} as const;
+
 const toastVariants = cva(
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
     variants: {
-      variant: {
-        default: "border bg-background text-foreground",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
-      },
+      variant: toastVariantOptions, // Use the strictly typed object here
     },
     defaultVariants: {
       variant: "default",
@@ -62,7 +71,11 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      "group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+      "group-[.info]:border-blue-500/40 group-[.info]:hover:border-blue-500/70 group-[.info]:hover:bg-blue-100 group-[.info]:hover:text-blue-800 group-[.info]:focus:ring-blue-500 dark:group-[.info]:hover:bg-blue-900/50 dark:group-[.info]:hover:text-blue-200",
+      "group-[.warning]:border-yellow-500/40 group-[.warning]:hover:border-yellow-500/70 group-[.warning]:hover:bg-yellow-100 group-[.warning]:hover:text-yellow-800 group-[.warning]:focus:ring-yellow-500 dark:group-[.warning]:hover:bg-yellow-900/50 dark:group-[.warning]:hover:text-yellow-200",
+      "group-[.success]:border-green-500/40 group-[.success]:hover:border-green-500/70 group-[.success]:hover:bg-green-100 group-[.success]:hover:text-green-800 group-[.success]:focus:ring-green-500 dark:group-[.success]:hover:bg-green-900/50 dark:group-[.success]:hover:text-green-200",
       className
     )}
     {...props}
@@ -77,7 +90,11 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100",
+      "group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "group-[.info]:text-blue-400 group-[.info]:hover:text-blue-600 group-[.info]:focus:ring-blue-400 group-[.info]:focus:ring-offset-blue-600 dark:group-[.info]:text-blue-500 dark:group-[.info]:hover:text-blue-300",
+      "group-[.warning]:text-yellow-400 group-[.warning]:hover:text-yellow-600 group-[.warning]:focus:ring-yellow-400 group-[.warning]:focus:ring-offset-yellow-600 dark:group-[.warning]:text-yellow-500 dark:group-[.warning]:hover:text-yellow-300",
+      "group-[.success]:text-green-400 group-[.success]:hover:text-green-600 group-[.success]:focus:ring-green-400 group-[.success]:focus:ring-offset-green-600 dark:group-[.success]:text-green-500 dark:group-[.success]:hover:text-green-300",
       className
     )}
     toast-close=""
@@ -116,14 +133,17 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
+// It's good practice to also update the useToast hook if it's separate,
+// or ensure its types are compatible with these new variants.
+// For now, this file only defines the components.
+
+// The hook 'useToast' would typically have a 'toast' function whose options
+// should also allow these new variants.
+// e.g., interface ToastAction extends Action {}
+// interface Toast extends ToastProps { variant?: "default" | "destructive" | "info" | "warning" | "success" }
+// function toast(props: Toast)
+
 export {
-  type ToastProps,
-  type ToastActionElement,
-  ToastProvider,
-  ToastViewport,
-  Toast,
-  ToastTitle,
-  ToastDescription,
-  ToastClose,
-  ToastAction,
+  Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport, type ToastActionElement, type ToastProps
 }
+

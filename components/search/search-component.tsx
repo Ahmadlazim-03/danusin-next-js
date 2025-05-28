@@ -7,11 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatCurrency } from "@/lib/utils"
 import { Building, Loader2, Package, Search, X } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
-
-// Assuming PocketBase is already imported in the Header component
-// If not, you'll need to import it here
 import PocketBase from "pocketbase"
+import { useEffect, useMemo, useRef, useState } from "react"; // Added useMemo
 
 // Define types for search results
 interface Organization {
@@ -30,8 +27,11 @@ interface Product {
   description?: string
   price?: number
   discount?: number
-  by_organization?: string
-  organizationName?: string
+  by_organization?: string // ID of the organization
+  organizationName?: string // Populated after fetching/expanding
+  expand?: { // For PocketBase expanded relations
+    by_organization?: Organization // Use the Organization type here
+  }
 }
 
 interface SearchResult {
@@ -51,7 +51,12 @@ export function SearchComponent() {
     query: "",
   })
   const inputRef = useRef<HTMLInputElement>(null)
-  const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL || "https://pocketbase.evoptech.com")
+
+  // Initialize PocketBase instance using useMemo for stability
+  const pb = useMemo(
+    () => new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL || "https://pocketbase.evoptech.com"),
+    [], // Empty dependency array means pb is created once per component lifecycle
+  )
 
   // Search recommendations
   const searchRecommendations = [
@@ -79,16 +84,16 @@ export function SearchComponent() {
         setSearchResults((prev) => ({ ...prev, isLoading: true, query: searchQuery }))
 
         // Search for organizations
-        const organizationsResult = await pb.collection("danusin_organization").getList(1, 5, {
+        const organizationsResult = await pb.collection("danusin_organization").getList<Organization>(1, 5, {
           filter: `organization_name~"${searchQuery}" || organization_slug~"${searchQuery}" || organization_description~"${searchQuery}"`,
           sort: "-created",
         })
 
         // Search for products
-        const productsResult = await pb.collection("danusin_product").getList(1, 5, {
+        const productsResult = await pb.collection("danusin_product").getList<Product>(1, 5, {
           filter: `product_name~"${searchQuery}" || description~"${searchQuery}" || slug~"${searchQuery}"`,
           sort: "-created",
-          expand: "by_organization",
+          expand: "by_organization", // Request to expand the 'by_organization' relation
         })
 
         // Process products to include organization name
@@ -98,20 +103,22 @@ export function SearchComponent() {
 
             if (product.by_organization) {
               try {
+                // Check if organization data is already expanded
                 if (product.expand?.by_organization) {
                   organizationName = product.expand.by_organization.organization_name
                 } else {
-                  const org = await pb.collection("danusin_organization").getOne(product.by_organization)
+                  // Fallback: fetch organization details if not expanded (or if expand failed partially)
+                  const org = await pb.collection("danusin_organization").getOne<Organization>(product.by_organization)
                   organizationName = org.organization_name
                 }
               } catch (e) {
-                console.warn("Could not fetch organization details:", e)
+                console.warn(`Could not fetch organization details for product ${product.id}:`, e)
               }
             }
 
             return {
               ...product,
-              organizationName,
+              organizationName, // Add organizationName to the product object
             }
           }),
         )
@@ -124,12 +131,12 @@ export function SearchComponent() {
         })
       } catch (error) {
         console.error("Search error:", error)
-        setSearchResults((prev) => ({ ...prev, isLoading: false }))
+        setSearchResults((prev) => ({ ...prev, isLoading: false, organizations: [], products: [] })) // Clear results on error
       }
     }, 300) // 300ms debounce
 
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [searchQuery, pb]) // pb is now a stable dependency thanks to useMemo
 
   const handleClearSearch = () => {
     setSearchQuery("")
@@ -154,7 +161,7 @@ export function SearchComponent() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClick={(e) => {
-              e.stopPropagation()
+              e.stopPropagation() // Prevent Popover from closing if part of another clickable element that might close it
               setIsSearchPopoverOpen(true)
             }}
             onFocus={() => {
@@ -169,6 +176,7 @@ export function SearchComponent() {
               size="icon"
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-emerald-100 hover:text-white dark:text-zinc-400 dark:hover:text-white"
               onClick={handleClearSearch}
+              aria-label="Clear search"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -178,7 +186,7 @@ export function SearchComponent() {
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-1 mt-1 bg-card border-border shadow-md rounded-md max-h-[80vh] overflow-auto"
         sideOffset={5}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()} // Keep focus on the input
         align="center"
       >
         {searchResults.isLoading ? (
@@ -205,7 +213,7 @@ export function SearchComponent() {
                     <div className="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-emerald-100 dark:bg-zinc-700 flex items-center justify-center">
                       {org.organization_image ? (
                         <img
-                          src={pb.files.getUrl(org, org.organization_image, { thumb: "64x64" || "/placeholder.svg" })}
+                          src={pb.files.getUrl(org, org.organization_image, { thumb: "64x64" })} // Corrected thumb option
                           alt={org.organization_name}
                           className="w-full h-full object-cover"
                         />
@@ -240,7 +248,7 @@ export function SearchComponent() {
                       {product.product_image && product.product_image.length > 0 ? (
                         <img
                           src={pb.files.getUrl(product, product.product_image[0], {
-                            thumb: "64x64" || "/placeholder.svg",
+                            thumb: "64x64", // Corrected thumb option
                           })}
                           alt={product.product_name}
                           className="w-full h-full object-cover"
