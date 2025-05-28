@@ -1,18 +1,17 @@
 "use client";
 
+import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/auth/auth-provider";
 import {
   ChevronRight,
-  Flame,
   LayoutDashboard,
   Locate,
   Map,
   Tag,
   Telescope,
   TrendingUp,
-  Users,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -48,12 +47,6 @@ export function Sidebar() {
       label: "Organization",
       icon: Users,
       url: "/dashboard/organization",
-      showAlways: false,
-    },
-    {
-      label: "Trends",
-      icon: Flame,
-      url: "/dashboard/trend",
       showAlways: false,
     },
     {

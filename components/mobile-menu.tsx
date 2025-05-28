@@ -20,19 +20,17 @@ import {
 import {
   Bell,
   ChevronRight,
-  Flame,
   Heart,
   LayoutDashboard,
   Map,
   Menu,
-  ShoppingCart,
   Telescope,
-  Users,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import type { RecordModel } from "pocketbase"; // Impor RecordModel
-import { useEffect, useState } from "react";
 import PocketBase from "pocketbase";
+import { useEffect, useState } from "react";
 
 interface MobileMenuProps {
   currentUser?: RecordModel | null;
@@ -210,7 +208,6 @@ export function MobileMenu({ currentUser, avatarUrl }: MobileMenuProps) {
                   icon: Users,
                   href: "/dashboard/organization",
                 },
-                { label: "Trends", icon: Flame, href: "/dashboard/trend" },
                 { label: "Map Explorer", icon: Map, href: "/dashboard/maps" },
               ].map((item) => {
                 const Icon = item.icon;

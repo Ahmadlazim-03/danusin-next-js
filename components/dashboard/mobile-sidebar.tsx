@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import { BarChart3, Building2, Home, LogOut, Map, MapPin, Menu, Package } from "lucide-react"
+import { Building2, Home, LogOut, Map, MapPin, Menu, Package } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -27,11 +27,7 @@ const mobileNavItems = [
     href: "/dashboard/products",
     icon: Package,
   },
-  {
-    title: "Trends",
-    href: "/dashboard/trends",
-    icon: BarChart3,
-  },
+  
   {
     title: "Map",
     href: "/dashboard/map",
