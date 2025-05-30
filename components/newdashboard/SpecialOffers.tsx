@@ -3,14 +3,14 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-    Percent, 
-    ChevronLeft, 
-    ChevronRight, 
+import {
+    Percent,
+    ChevronLeft,
+    ChevronRight,
     Package,
-    ExternalLink as ExternalLinkIcon, 
-    Building2, 
-    User as UserIcon, 
+    ExternalLink as ExternalLinkIcon,
+    Building2,
+    User as UserIcon,
     Heart as HeartIcon,
     Loader2 // Loader2 untuk tombol favorit
 } from "lucide-react";
@@ -21,26 +21,26 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { pb } from "@/lib/pocketbase";
 import { RecordModel, ClientResponseError } from "pocketbase";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/auth/auth-provider"; // Assuming AuthContextType is correctly defined with 'loading'
 import { useToast } from "@/components/ui/use-toast";
 
 // Tipe Data Product
 type ProductDataForCard = RecordModel & {
-  product_name: string;
-  slug: string;
-  description?: string;
-  price: number;
-  discount?: number;
-  product_image: string[];
-  expand?: {
-    by_organization?: { id: string; organization_name: string; organization_slug: string; };
-    added_by?: { id: string; name: string; };
+    product_name: string;
+    slug: string;
+    description?: string;
+    price: number;
+    discount?: number;
+    product_image: string[];
+    expand?: {
+        by_organization?: { id: string; organization_name: string; organization_slug: string; };
+        added_by?: { id: string; name: string; };
+        catalog?: { id: string; name: string; }[];
+    }
+    by_organization?: { id: string; organization_name: string; organization_slug: string; } | null;
+    added_by?: { id: string; name: string; } | null;
     catalog?: { id: string; name: string; }[];
-  }
-  by_organization?: { id: string; organization_name: string; organization_slug: string; } | null;
-  added_by?: { id: string; name: string; } | null;
-  catalog?: { id: string; name: string; }[]; 
-  created: string;
+    created: string;
 };
 
 // Tipe untuk data favorit
@@ -52,7 +52,7 @@ type FavoriteRecord = RecordModel & {
 // Props baru untuk ProductCard
 interface ProductCardProps {
     product: ProductDataForCard;
-    currentUser: any | null; // dari useAuth().user
+    currentUser: any | null; // dari useAuth().user (should match YourUserType from AuthProvider)
     favoriteIds: Set<string>; // Set dari ID produk yang difavoritkan oleh currentUser
     favoriteRecordId: string | null; // ID dari record favorit milik currentUser di PocketBase
     updateLocalFavorites: (productId: string, action: 'add' | 'remove') => void; // Fungsi untuk update Set favorit secara lokal
@@ -60,13 +60,13 @@ interface ProductCardProps {
 }
 
 // --- Komponen ProductCard dengan Tombol Favorit Fungsional ---
-function ProductCard({ 
-    product, 
-    currentUser, 
-    favoriteIds, 
-    favoriteRecordId, 
-    updateLocalFavorites, 
-    refreshFavorites 
+function ProductCard({
+    product,
+    currentUser,
+    favoriteIds,
+    favoriteRecordId,
+    updateLocalFavorites,
+    refreshFavorites
 }: ProductCardProps) {
     const { toast } = useToast();
     const [loadingFavorite, setLoadingFavorite] = useState(false);
@@ -78,7 +78,7 @@ function ProductCard({
             return;
         }
         setLoadingFavorite(true);
-        const wasFavorited = isFavorited;
+        const wasFavorited = isFavorited; // Capture state before any async operation
         try {
             const currentFavoriteProductIds = Array.from(favoriteIds);
             let newFavoriteProductIds: string[];
@@ -88,24 +88,20 @@ function ProductCard({
             } else {
                 newFavoriteProductIds = [...currentFavoriteProductIds, product.id];
             }
-            newFavoriteProductIds = [...new Set(newFavoriteProductIds)]; // Pastikan unik
+            newFavoriteProductIds = [...new Set(newFavoriteProductIds)]; // Ensure uniqueness
 
-            if (favoriteRecordId) { // Jika user sudah punya record favorit, update
+            if (favoriteRecordId) { // If user already has a favorite record, update it
                 await pb.collection('danusin_favorite').update(favoriteRecordId, { products_id: newFavoriteProductIds });
-            } else { // Jika user belum punya record favorit, buat baru
-                // Kita perlu memastikan refreshFavorites akan mengupdate favoriteRecordId di parent
-                const newRecord = await pb.collection('danusin_favorite').create<FavoriteRecord>({ 
-                    danusers_id: currentUser.id, 
-                    products_id: newFavoriteProductIds 
+                updateLocalFavorites(product.id, wasFavorited ? 'remove' : 'add'); // Optimistic update for existing record
+            } else { // If user doesn't have a favorite record, create a new one
+                await pb.collection('danusin_favorite').create<FavoriteRecord>({
+                    danusers_id: currentUser.id,
+                    products_id: newFavoriteProductIds
                 });
-                // Panggil refreshFavorites untuk memperbarui favoriteRecordId dan favoriteIds di parent
-                await refreshFavorites(); 
-                // return; // Mungkin perlu return di sini agar updateLocalFavorites tidak dipanggil jika refresh sudah menangani
+                // After creating, refresh favorites from server to get the new record ID and update lists
+                await refreshFavorites();
+                // No need for updateLocalFavorites here as refreshFavorites handles updating the state from server truth
             }
-            
-            // Update state lokal langsung setelah operasi berhasil (atau biarkan refreshFavorites menangani ini)
-            updateLocalFavorites(product.id, wasFavorited ? 'remove' : 'add');
-
 
             toast({
                 title: "Favorit Diperbarui",
@@ -117,12 +113,12 @@ function ProductCard({
             if (error instanceof ClientResponseError) { errMsg = error.response?.message || errMsg; }
             else if (error instanceof Error) { errMsg = error.message; }
             toast({ title: "Error", description: errMsg, variant: "destructive" });
-            await refreshFavorites(); // Re-sync jika error
+            await refreshFavorites(); // Re-sync with server state in case of error
         } finally {
             setLoadingFavorite(false);
         }
     };
-    
+
     const displayPrice = product.discount && product.discount > 0 && product.discount < product.price ? (
         <>
             <span className="line-through text-neutral-500 dark:text-zinc-500 font-normal text-xs">
@@ -138,13 +134,13 @@ function ProductCard({
 
     const imageUrl = product.product_image && product.product_image.length > 0 && product.collectionId && product.id
         ? pb.getFileUrl(product, product.product_image[0], { thumb: "500x300" })
-        : "/placeholder-product.png"; 
+        : "/placeholder-product.png";
 
     const organization = product.expand?.by_organization || product.by_organization;
     const addedByUser = product.expand?.added_by || product.added_by;
     const catalogsRaw = product.expand?.catalog || product.catalog;
     const catalogs = Array.isArray(catalogsRaw) ? catalogsRaw : (catalogsRaw ? [catalogsRaw] : []);
-    const productLink = `/dashboard/products/${product.id}`; // Prioritaskan slug
+    const productLink = `/dashboard/products/${product.slug || product.id}`; // Use slug if available, fallback to id
 
     return (
         <motion.div
@@ -169,14 +165,14 @@ function ProductCard({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex justify-between items-center">
-                           <Button asChild size="sm" className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 text-xs px-3 py-1.5 h-auto rounded-md">
-                               <Link href={productLink}> <ExternalLinkIcon className="h-3 w-3 mr-1.5" /> Lihat Produk </Link>
-                           </Button>
-                            <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="bg-white/20 dark:bg-zinc-800/70 border-white/30 dark:border-zinc-700 text-white dark:text-zinc-300 hover:bg-white/30 dark:hover:bg-zinc-700 hover:border-emerald-500/70 dark:hover:border-emerald-500 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 w-8 h-8 rounded-full disabled:opacity-50" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleFavorite(); }} 
+                            <Button asChild size="sm" className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 text-xs px-3 py-1.5 h-auto rounded-md">
+                                <Link href={productLink}> <ExternalLinkIcon className="h-3 w-3 mr-1.5" /> Lihat Produk </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="bg-white/20 dark:bg-zinc-800/70 border-white/30 dark:border-zinc-700 text-white dark:text-zinc-300 hover:bg-white/30 dark:hover:bg-zinc-700 hover:border-emerald-500/70 dark:hover:border-emerald-500 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 w-8 h-8 rounded-full disabled:opacity-50"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleFavorite(); }}
                                 aria-label={isFavorited ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
                                 disabled={loadingFavorite || !currentUser}
                             >
@@ -229,29 +225,29 @@ export default function DiscountedProducts() {
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const [products, setProducts] = useState<ProductDataForCard[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingProducts, setLoadingProducts] = useState(true); // Renamed for clarity
     const [error, setError] = useState<string | null>(null);
-    
+
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
     // --- State dan Logika Favorit ---
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
     const [favoriteRecordId, setFavoriteRecordId] = useState<string | null>(null);
-    const [loadingFavorites, setLoadingFavorites] = useState(true);
+    const [loadingFavorites, setLoadingFavorites] = useState(true); // True initially for the first fetch
 
     const fetchUserFavorites = useCallback(async (signal?: AbortSignal) => {
         if (!currentUser || !pb.authStore.isValid) {
             setFavoriteIds(new Set()); setFavoriteRecordId(null); setLoadingFavorites(false); return;
         }
-        // Tidak set loading true di sini agar tidak flicker jika dipanggil untuk refresh
+        // setLoadingFavorites(true); // Set loading true at the start of a fetch sequence, not for every refresh call
         try {
             const record = await pb.collection('danusin_favorite').getFirstListItem<FavoriteRecord>(`danusers_id = "${currentUser.id}"`, { signal, $autoCancel: false });
             if (!signal?.aborted) { setFavoriteIds(new Set(record.products_id || [])); setFavoriteRecordId(record.id); }
         } catch (err: any) {
             if (!signal?.aborted) {
-                if ((err instanceof ClientResponseError && err.status === 0) || err.name === 'AbortError') { console.warn("Favorite fetch cancelled."); }
-                else if (err.status === 404) { setFavoriteIds(new Set()); setFavoriteRecordId(null); }
+                if ((err instanceof ClientResponseError && err.status === 0) || err.name === 'AbortError') { console.warn("Favorite fetch cancelled or network error."); }
+                else if (err.status === 404) { setFavoriteIds(new Set()); setFavoriteRecordId(null); } // No favorite record yet
                 else { console.error("Failed to fetch favorites:", err); setFavoriteIds(new Set()); setFavoriteRecordId(null); }
             }
         } finally { if (!signal?.aborted) { setLoadingFavorites(false); } }
@@ -259,8 +255,14 @@ export default function DiscountedProducts() {
 
     useEffect(() => {
         const controller = new AbortController();
-        if (currentUser) { setLoadingFavorites(true); fetchUserFavorites(controller.signal); } 
-        else { setLoadingFavorites(false); }
+        if (currentUser) { // Only fetch if user is loaded
+            setLoadingFavorites(true); // Indicate loading for the initial fetch
+            fetchUserFavorites(controller.signal);
+        } else { // If no user, then no favorites to load
+             setFavoriteIds(new Set());
+             setFavoriteRecordId(null);
+             setLoadingFavorites(false);
+        }
         return () => controller.abort();
     }, [currentUser, fetchUserFavorites]);
 
@@ -275,7 +277,7 @@ export default function DiscountedProducts() {
 
 
     const fetchDiscountedProducts = useCallback(async (signal: AbortSignal) => {
-        setLoading(true); setError(null);
+        setLoadingProducts(true); setError(null);
         try {
             const result = await pb.collection('danusin_product').getFullList<ProductDataForCard>(
                 { filter: 'discount > 0', sort: '-created', expand: 'by_organization,added_by,catalog', signal, $autoCancel: false, }
@@ -287,8 +289,8 @@ export default function DiscountedProducts() {
                 setError("Gagal memuat produk diskon.");
                 toast({ title: "Error", description: "Gagal memuat produk diskon.", variant:"destructive"});
             } else { console.log("Fetch discounted products request was cancelled."); }
-        } finally { if (!signal.aborted) { setLoading(false); } }
-    }, []);
+        } finally { if (!signal.aborted) { setLoadingProducts(false); } }
+    }, [toast]); // Added toast to dependency array of useCallback
 
     useEffect(() => {
         const controller = new AbortController();
@@ -304,10 +306,11 @@ export default function DiscountedProducts() {
     const handleNextPage = () => { setCurrentPage((prev) => Math.min(prev + 1, totalPages)); };
     const handlePrevPage = () => { setCurrentPage((prev) => Math.max(prev - 1, 1)); };
 
-    if (loading || loadingFavorites) {
+    // Combined loading state check
+    if (loadingProducts || (currentUser && loadingFavorites)) {
         return ( <section className="mb-6 md:mb-10"> <div className="flex items-center justify-between mb-4 md:mb-6"> <Skeleton className="h-8 w-1/3" /> <Skeleton className="h-10 w-24" /> </div> <DiscountedProductsSkeleton /> </section> );
     }
-    if (error) { return <div className="mb-6 md:mb-10 p-4 text-center text-red-500">{error} <Button onClick={() => fetchDiscountedProducts(new AbortController().signal)} variant="outline" className="mt-2">Coba Lagi</Button></div>; }
+    if (error) { return <div className="mb-6 md:mb-10 p-4 text-center text-red-500">{error} <Button onClick={() => { const c = new AbortController(); fetchDiscountedProducts(c.signal);}} variant="outline" className="mt-2">Coba Lagi</Button></div>; }
 
     return (
         <section className="mb-6 md:mb-10">
@@ -317,16 +320,16 @@ export default function DiscountedProducts() {
                     Penawaran Spesial
                 </h2>
                 <Button variant="outline" size="sm" className="border-neutral-300 text-neutral-700 hover:bg-emerald-50/90 hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 min-w-[90px] sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 rounded-md" asChild >
-                    <Link href="/dashboard/products/all?filter=discounted">Lihat Semua Diskon</Link> 
+                    <Link href="/dashboard/products/all?filter=discounted">Lihat Semua Diskon</Link>
                 </Button>
             </div>
-            {currentProducts.length === 0 && !loading ? (
-                   <div className="text-center py-12 text-muted-foreground bg-card border border-dashed rounded-lg"> <Package className="mx-auto h-12 w-12 mb-4 text-gray-400" /> <p className="text-lg">Tidak ada produk diskon saat ini.</p> </div>
+            {currentProducts.length === 0 && !loadingProducts ? ( // Check !loadingProducts here
+                 <div className="text-center py-12 text-muted-foreground bg-card border border-dashed rounded-lg"> <Package className="mx-auto h-12 w-12 mb-4 text-gray-400" /> <p className="text-lg">Tidak ada produk diskon saat ini.</p> </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {currentProducts.map((product) => (
-                        <ProductCard 
-                            key={product.id} 
+                        <ProductCard
+                            key={product.id}
                             product={product}
                             currentUser={currentUser}
                             favoriteIds={favoriteIds}
