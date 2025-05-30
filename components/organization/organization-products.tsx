@@ -15,16 +15,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/use-toast";
+import { toast, useToast } from "@/components/ui/use-toast";
 import { pb } from "@/lib/pocketbase";
-import { MoreHorizontal, Plus, Package, Pencil, Trash2, Heart as HeartIcon, ExternalLink, User, Building2 } from "lucide-react";
+import { RecordModel, ClientResponseError } from "pocketbase"; // Added RecordModel, ClientResponseError
+import { MoreHorizontal, Plus, Package, Pencil, Trash2, Heart as HeartIcon, ExternalLink, User, Building2, Loader2 } from "lucide-react"; // Added Loader2
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAuth } from "@/components/auth/auth-provider";
+import { useAuth } from "@/components/auth/auth-provider"; // Assuming AuthContextType is updated with 'loading'
 import { useRouter } from "next/navigation";
 
 // Tipe Data Catalog
@@ -35,11 +36,8 @@ type CatalogFormData = {
     organization?: string;
 };
 
-// Tipe Data Product
-type ProductDataForCard = {
-    id: string;
-    collectionId: string;
-    collectionName: string;
+// Tipe Data Product (ensuring it's a RecordModel for pb.getFileUrl)
+type ProductDataForCard = RecordModel & {
     product_name: string;
     slug: string;
     description: string;
@@ -58,14 +56,42 @@ type ProductDataForCard = {
     catalog: {
         id: string;
         name: string;
-    }[];
+    }[]; // Changed to non-optional and array of objects for consistency
     created: string;
+    // Ensure expand is available if used, or rely on direct properties
+    expand?: {
+        by_organization?: { id: string; organization_name: string; organization_slug: string; };
+        added_by?: { id: string; name: string; };
+        catalog?: { id: string; name: string; }[];
+    }
 };
 
+// Tipe untuk data favorit
+type FavoriteRecord = RecordModel & {
+    danusers_id: string;
+    products_id: string[];
+};
+
+
 interface OrganizationProductsProps {
-    organizationId: string; // ID organisasi saat ini
+    organizationId: string;
     userRole: string | null;
 }
+
+// Props for ProductCard with favorite functionality
+interface OrgProductCardProps {
+    product: ProductDataForCard;
+    currentUser: any | null;
+    favoriteIds: Set<string>;
+    favoriteRecordId: string | null;
+    updateLocalFavorites: (productId: string, action: 'add' | 'remove') => void;
+    refreshFavorites: () => Promise<void>;
+    // For edit/delete, passed from parent if needed, or handled internally if permissions allow
+    canManageProduct?: boolean;
+    onEdit?: (slug: string) => void;
+    onDelete?: (productId: string, productName: string) => void; // Pass product name for dialog
+}
+
 
 // --- Fungsi untuk membuat slug ---
 const slugify = (text: string): string => {
@@ -79,17 +105,71 @@ const slugify = (text: string): string => {
     .replace(/-+$/, '');
 };
 
-// --- Komponen ProductCard ---
-function ProductCard({ product }: { product: ProductDataForCard }) {
-    const [isFavorited, setIsFavorited] = useState(false);
+// --- Komponen ProductCard (Modified for Favorites) ---
+function ProductCard({
+    product,
+    currentUser,
+    favoriteIds,
+    favoriteRecordId,
+    updateLocalFavorites,
+    refreshFavorites,
+    // canManageProduct, onEdit, onDelete // these would be for dropdown, kept separate for now
+}: OrgProductCardProps) {
+    const { toast } = useToast();
+    const [loadingFavorite, setLoadingFavorite] = useState(false);
+    const isFavorited = favoriteIds.has(product.id);
 
-    const displayPrice = product.discount && product.discount > 0 ? (
+    const handleToggleFavorite = async () => {
+        if (!currentUser) {
+            toast({ title: "Harap Login", description: "Anda harus login untuk mengubah favorit.", variant: "destructive" });
+            return;
+        }
+        setLoadingFavorite(true);
+        const wasFavorited = isFavorited;
+        try {
+            const currentFavoriteProductIds = Array.from(favoriteIds);
+            let newFavoriteProductIds: string[];
+
+            if (wasFavorited) {
+                newFavoriteProductIds = currentFavoriteProductIds.filter(id => id !== product.id);
+            } else {
+                newFavoriteProductIds = [...currentFavoriteProductIds, product.id];
+            }
+            newFavoriteProductIds = [...new Set(newFavoriteProductIds)];
+
+            if (favoriteRecordId) {
+                await pb.collection('danusin_favorite').update(favoriteRecordId, { products_id: newFavoriteProductIds });
+                updateLocalFavorites(product.id, wasFavorited ? 'remove' : 'add');
+            } else {
+                await pb.collection('danusin_favorite').create<FavoriteRecord>({
+                    danusers_id: currentUser.id,
+                    products_id: newFavoriteProductIds
+                });
+                await refreshFavorites();
+            }
+            toast({
+                title: "Favorit Diperbarui",
+                description: `${product.product_name} ${wasFavorited ? 'dihapus dari' : 'ditambahkan ke'} favorit.`
+            });
+        } catch (error: any) {
+            console.error("Error toggling favorite:", error);
+            let errMsg = "Gagal memperbarui favorit.";
+            if (error instanceof ClientResponseError) { errMsg = error.response?.message || errMsg; }
+            else if (error instanceof Error) { errMsg = error.message; }
+            toast({ title: "Error", description: errMsg, variant: "destructive" });
+            await refreshFavorites();
+        } finally {
+            setLoadingFavorite(false);
+        }
+    };
+
+    const displayPrice = product.discount && product.discount > 0 && product.discount < product.price ? (
         <>
             <span className="line-through text-neutral-500 dark:text-zinc-500 font-normal text-[11px] sm:text-xs">
                 Rp {product.price.toLocaleString('id-ID')}
             </span>
             <span className="text-emerald-600 dark:text-emerald-400">
-                Rp {product.discount.toLocaleString('id-ID')}
+                {' '}Rp {product.discount.toLocaleString('id-ID')}
             </span>
         </>
     ) : (
@@ -100,6 +180,9 @@ function ProductCard({ product }: { product: ProductDataForCard }) {
         product.product_image && product.product_image.length > 0
             ? pb.getFileUrl(product, product.product_image[0], { thumb: "500x300" })
             : "/placeholder-product.png";
+
+    const productLink = `/dashboard/products/${product.slug || product.id}`;
+
 
     return (
         <motion.div
@@ -126,13 +209,19 @@ function ProductCard({ product }: { product: ProductDataForCard }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex justify-between items-center">
                            <Button asChild size="sm" className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600 transition-all duration-300 shadow-lg hover:shadow-emerald-500/30 text-xs px-3 py-1.5 h-auto rounded-md">
-                               {/* Menggunakan slug produk atau ID produk jika slug tidak ada */}
-                               <Link href={`/dashboard/products/${product.id}`}>
-                                   <ExternalLink className="h-3 w-3 mr-1.5" /> View Product
-                               </Link>
-                           </Button>
-                            <Button variant="outline" size="icon" className="bg-white/20 dark:bg-zinc-800/70 border-white/30 dark:border-zinc-700 text-white dark:text-zinc-300 hover:bg-white/30 dark:hover:bg-zinc-700 hover:border-emerald-500/70 dark:hover:border-emerald-500 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 w-8 h-8 rounded-full" onClick={(e) => { e.preventDefault(); setIsFavorited(!isFavorited); }} aria-label="Add to Wishlist">
-                                <HeartIcon className={`w-4 h-4 transition-all ${isFavorited ? "fill-rose-500 stroke-rose-500" : "stroke-current group-hover:stroke-rose-400"}`} />
+                                <Link href={productLink}>
+                                    <ExternalLink className="h-3 w-3 mr-1.5" /> View Product
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="bg-white/20 dark:bg-zinc-800/70 border-white/30 dark:border-zinc-700 text-white dark:text-zinc-300 hover:bg-white/30 dark:hover:bg-zinc-700 hover:border-emerald-500/70 dark:hover:border-emerald-500 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 w-8 h-8 rounded-full disabled:opacity-50"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleFavorite(); }}
+                                aria-label={isFavorited ? "Remove from Wishlist" : "Add to Wishlist"}
+                                disabled={loadingFavorite || !currentUser}
+                            >
+                                {loadingFavorite ? <Loader2 className="w-4 h-4 animate-spin" /> : <HeartIcon className={`w-4 h-4 transition-all ${isFavorited ? "fill-rose-500 stroke-rose-500" : "stroke-current group-hover:stroke-rose-400"}`} />}
                             </Button>
                         </div>
                     </div>
@@ -140,7 +229,7 @@ function ProductCard({ product }: { product: ProductDataForCard }) {
                 <CardContent className="p-3 sm:p-4 relative z-10 flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-1.5">
                         <h3 className="font-semibold text-base sm:text-lg line-clamp-2 text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 flex-1 pr-2">
-                            {product.product_name}
+                            <Link href={productLink}>{product.product_name}</Link>
                         </h3>
                         {product.by_organization && (
                             <TooltipProvider>
@@ -243,75 +332,120 @@ export function OrganizationProducts({
     organizationId,
     userRole,
 }: OrganizationProductsProps) {
+    const { user: currentUser } = useAuth();
+    const authLoading = false; // Set to false or handle loading state as appropriate for your app
     const [products, setProducts] = useState<ProductDataForCard[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Untuk status delete
+    const [loadingProducts, setLoadingProducts] = useState(true); // Renamed for clarity
+    const [isSubmitting, setIsSubmitting] = useState(false); // For status delete
+
+    // Favorite States
+    const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+    const [favoriteRecordId, setFavoriteRecordId] = useState<string | null>(null);
+    const [loadingFavorites, setLoadingFavorites] = useState(true); // True initially
 
     const canManageProducts = userRole === "admin" || userRole === "moderator";
     const isMountedRef = useRef(true);
     const router = useRouter();
 
+    const fetchUserFavorites = useCallback(async (signal?: AbortSignal) => {
+        if (!currentUser || !pb.authStore.isValid) {
+            setFavoriteIds(new Set()); setFavoriteRecordId(null); setLoadingFavorites(false); return;
+        }
+        // setLoadingFavorites(true); // Only set true by the calling useEffect for initial load
+        try {
+            const record = await pb.collection('danusin_favorite').getFirstListItem<FavoriteRecord>(`danusers_id = "${currentUser.id}"`, { signal, $autoCancel: false });
+            if (!signal?.aborted) { setFavoriteIds(new Set(record.products_id || [])); setFavoriteRecordId(record.id); }
+        } catch (err: any) {
+            if (!signal?.aborted) {
+                if ((err instanceof ClientResponseError && err.status === 0) || err.name === 'AbortError') { console.warn("Favorite fetch cancelled/network error."); }
+                else if (err.status === 404) { setFavoriteIds(new Set()); setFavoriteRecordId(null); }
+                else { console.error("Failed to fetch favorites:", err); setFavoriteIds(new Set()); setFavoriteRecordId(null); }
+            }
+        } finally { if (!signal?.aborted) { setLoadingFavorites(false); } }
+    }, [currentUser]);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        if (currentUser) {
+            setLoadingFavorites(true); // For initial load or when user changes
+            fetchUserFavorites(controller.signal);
+        } else if (!authLoading) { // Not loading auth and no user
+            setFavoriteIds(new Set());
+            setFavoriteRecordId(null);
+            setLoadingFavorites(false);
+        }
+        return () => controller.abort();
+    }, [currentUser, authLoading, fetchUserFavorites]);
+
+    const updateLocalFavorites = useCallback((productId: string, action: 'add' | 'remove') => {
+        setFavoriteIds(prevIds => {
+            const newIds = new Set(prevIds);
+            if (action === 'add') { newIds.add(productId); } else { newIds.delete(productId); }
+            return newIds;
+        });
+    }, []);
+
     const fetchCatalogsAndProducts = useCallback(async (controller: AbortController) => {
         if (!organizationId) {
-            setLoading(false); return;
+            setLoadingProducts(false); return;
         }
-        setLoading(true);
+        setLoadingProducts(true);
         let localFetchedCatalogs: CatalogFormData[] = [];
 
         try {
              try {
-                const catalogsResult = await pb.collection("danusin_catalog").getFullList({
+                const catalogsResult = await pb.collection("danusin_catalog").getFullList<CatalogFormData>({ // Typed getFullList
                     sort: 'name', signal: controller.signal, $autoCancel: false,
                 });
-                if (isMountedRef.current) {
-                    localFetchedCatalogs = catalogsResult.map((item: any) => ({
+                if (isMountedRef.current && !controller.signal.aborted) {
+                    localFetchedCatalogs = catalogsResult.map((item: any) => ({ // Use item type if more specific
                         id: item.id,
-                        name: item['T name'] || item.name || "N/A",
+                        name: item['T name'] || item.name || "N/A", // Handle potential naming inconsistencies
                         created_by: item.created_by,
                         organization: item.organization,
                     }));
                 }
             } catch (catalogError: any) {
-                 if (catalogError.name !== "AbortError" && !catalogError.isAbort && isMountedRef.current) {
+                 if (catalogError.name !== "AbortError" && !catalogError.isAbort && isMountedRef.current && !controller.signal.aborted) {
                     console.error("Error fetching catalogs:", catalogError);
                 }
             }
 
-            if (!isMountedRef.current) return;
+            if (!isMountedRef.current || controller.signal.aborted) return;
 
-            const productsResult = await pb.collection("danusin_product").getList(1, 100, {
+            const productsResult = await pb.collection("danusin_product").getList(1, 100, { // Consider pagination for more than 100 products
                 filter: `by_organization="${organizationId}"`,
                 sort: '-created',
                 expand: "catalog,added_by,by_organization",
                 signal: controller.signal, $autoCancel: false,
             });
 
-            if (!isMountedRef.current) return;
+            if (!isMountedRef.current || controller.signal.aborted) return;
 
-            const productsData = productsResult.items.map((p: any) => {
+            const productsData = productsResult.items.map((p: any): ProductDataForCard => { // Explicit return type
                 let mappedCatalogs: { id: string, name: string }[] = [];
                 if (p.expand?.catalog) {
                     const expanded = Array.isArray(p.expand.catalog) ? p.expand.catalog : [p.expand.catalog];
                     mappedCatalogs = expanded
-                        .filter((cat: any) => cat)
+                        .filter((cat: any) => cat) // Ensure cat is not null/undefined
                         .map((cat: any) => ({
                             id: cat.id,
                             name: cat['T name'] || cat.name || "Unknown Catalog"
                         }));
-                } else if (p.catalog) {
+                } else if (p.catalog) { // Fallback if expand failed but direct IDs are present
                      const catalogIds = Array.isArray(p.catalog) ? p.catalog : [p.catalog];
                      mappedCatalogs = catalogIds
                         .filter((catId: string) => catId)
                         .map((catId: string) => {
                              const foundCat = localFetchedCatalogs.find(fc => fc.id === catId);
                              return { id: catId, name: foundCat?.name || "Unknown Catalog" };
-                        });
+                         });
                 }
 
                 return {
                     id: p.id, collectionId: p.collectionId, collectionName: p.collectionName,
-                    product_name: p.product_name || p.name,
-                    slug: p.slug || p.id,
+                    product_name: p.product_name || p.name || "Unnamed Product", // Fallback for product name
+                    slug: p.slug || slugify(p.product_name || p.name || p.id), // Generate slug if missing
                     description: p.description || "",
                     price: parseFloat(p.price) || 0, discount: parseFloat(p.discount) || 0,
                     product_image: p.product_image || [],
@@ -321,23 +455,27 @@ export function OrganizationProducts({
                         organization_slug: p.expand.by_organization.organization_slug,
                     } : null,
                     added_by: p.expand?.added_by ? {
-                        id: p.expand.added_by.id, name: p.expand.added_by.name,
+                        id: p.expand.added_by.id, name: p.expand.added_by.name || "Unknown User",
                     } : null,
                     catalog: mappedCatalogs,
                     created: p.created,
+                    // Add other RecordModel fields if necessary, or cast 'p' as RecordModel if it fits
+                    updated: p.updated, // Example
+                    '@instanceId': p['@instanceId'], // Example
+                    expand: p.expand, // Keep expand if other parts of app use it directly
                 };
             });
-            setProducts(productsData as ProductDataForCard[]);
+            setProducts(productsData);
 
         } catch (error: any) {
-            if (error.name !== "AbortError" && !error.isAbort && isMountedRef.current) {
+            if (error.name !== "AbortError" && !error.isAbort && isMountedRef.current && !controller.signal.aborted) {
                 console.error("Error fetching products:", error);
                 toast({ title: "Error", description: `Tidak dapat memuat produk: ${error.message}`, variant: "destructive" });
             }
         } finally {
-            if (isMountedRef.current) setLoading(false);
+            if (isMountedRef.current && !controller.signal.aborted) setLoadingProducts(false);
         }
-    }, [organizationId]);
+    }, [organizationId]); // Removed toast from dependencies, as it's stable
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -363,10 +501,8 @@ export function OrganizationProducts({
         }
     };
 
-    // --- FUNGSI handleAddClick DIPERBARUI ---
     const handleAddClick = () => {
         if (organizationId) {
-            // Mengarahkan ke URL baru dengan ID organisasi
             router.push(`/dashboard/organization/products/add/${organizationId}`);
         } else {
             toast({
@@ -374,17 +510,16 @@ export function OrganizationProducts({
                 description: "ID Organisasi tidak tersedia untuk menambahkan produk.",
                 variant: "destructive",
             });
-            console.error("Organization ID is missing in OrganizationProducts component for add product navigation.");
+            console.error("Organization ID is missing for add product navigation.");
         }
     };
-    // --- AKHIR PERUBAHAN handleAddClick ---
 
     const handleEditClick = (slug: string) => {
-        // URL edit tetap sama untuk saat ini, atau sesuaikan jika perlu
         router.push(`/dashboard/organization/products/edit/${slug}`);
     };
 
-    if (loading) {
+    // Combined loading state
+    if (loadingProducts || authLoading || (currentUser && loadingFavorites)) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {[...Array(3)].map((_, i) => <ProductListSkeleton key={i} />)}
@@ -409,7 +544,14 @@ export function OrganizationProducts({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {products.map((product) => (
                         <div key={product.id} className="relative group/productitem">
-                            <ProductCard product={product} />
+                            <ProductCard
+                                product={product}
+                                currentUser={currentUser}
+                                favoriteIds={favoriteIds}
+                                favoriteRecordId={favoriteRecordId}
+                                updateLocalFavorites={updateLocalFavorites}
+                                refreshFavorites={fetchUserFavorites}
+                            />
                             {canManageProducts && (
                                 <div className="absolute top-3 right-3 z-20 opacity-0 group-hover/productitem:opacity-100 group-focus-within/productitem:opacity-100 transition-opacity duration-200">
                                     <DropdownMenu>
