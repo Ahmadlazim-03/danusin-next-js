@@ -181,7 +181,7 @@ function ProductCard({
             ? pb.getFileUrl(product, product.product_image[0], { thumb: "500x300" })
             : "/placeholder-product.png";
 
-    const productLink = `/dashboard/products/${product.slug || product.id}`;
+    const productLink = `/dashboard/products/${product.id}`;
 
 
     return (
