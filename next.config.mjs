@@ -1,4 +1,60 @@
+import 'dotenv/config';
+
+const isDev = process.env.NODE_ENV !== 'production';
+
+const csp = [
+  "default-src 'self';",
+  "img-src 'self' data: https: pocketbase.evoptech.com danusin.com localhost *.google.com *.gstatic.com *.googleusercontent.com api.mapbox.com;",
+  [
+    "connect-src 'self'",
+    "http://localhost:*",
+    "https://localhost:*",
+    "https://pocketbase.evoptech.com",
+    "https://danusin.com",
+    "https://*.googleapis.com",
+    "https://*.google.com",
+    "https://nominatim.openstreetmap.org",
+    "https://*.openstreetmap.org",
+    "https://api.mapbox.com",
+    "https://tiles.mapbox.com",
+    "https://*.mapbox.com",
+  ].join(' '),
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ''} https://*.googleapis.com https://*.gstatic.com https://*.google.com https://api.mapbox.com;`,
+  `worker-src 'self' blob:;`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com;",
+  // ++ MODIFIED THIS LINE TO ALLOW 'data:' FOR FONTS ++
+  "font-src 'self' https://fonts.gstatic.com data:;",
+  "frame-src https://*.google.com;",
+].join('; ');
+
 /** @type {import('next').NextConfig} */
+const securityHeaders = [
+  {
+    key: 'Content-Security-Policy',
+    value: csp,
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  {
+    key: 'X-XSS-Protection',
+    value: '1; mode=block',
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
+];
+
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -7,27 +63,42 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // The `remotePatterns` array is the more modern way to configure allowed image sources.
-    // The previous `domains` array is now redundant if covered by `remotePatterns`.
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'pocketbase.evoptech.com', // Fixed: Provided the hostname
-        // You can also specify port and pathname if needed:
-        // port: '',
-        // pathname: '/path/to/images/**',
+        hostname: 'pocketbase.evoptech.com',
       },
-      // Add any other remote patterns you need here
+      {
+        protocol: 'https',
+        hostname: '**.google.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.mapbox.com',
+      },
     ],
-    unoptimized: true, // This disables Next.js Image Optimization.
+    unoptimized: true,
   },
   env: {
-    MAPBOX_TOKEN: 'pk.eyJ1IjoiZXZvcHRlY2giLCJhIjoiY21hcG85ZjhiMDByMDJqb2E1OGx4dGMyeSJ9.23o4bNoiuN4Xt9FpIfj1ow',
-    POCKETBASE_URL: 'https://pocketbase.evoptech.com',
-    // Consider using environment variables (.env files) for sensitive data
-    // instead of hardcoding them directly in next.config.js, especially for POCKETBASE_PASSWORD.
-    POCKETBASE_EMAIL: 'kajuki27@gmail.com',
-    POCKETBASE_PASSWORD: 'EvopTech1sH3re',
+    MAPBOX_TOKEN: process.env.MAPBOX_TOKEN,
+    POCKETBASE_URL: process.env.POCKETBASE_URL,
+    POCKETBASE_EMAIL: process.env.POCKETBASE_EMAIL,
+    POCKETBASE_PASSWORD: process.env.POCKETBASE_PASSWORD,
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+    ];
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
   },
 };
 

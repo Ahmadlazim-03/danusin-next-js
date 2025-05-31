@@ -17,6 +17,7 @@ import { FaGoogle } from "react-icons/fa"
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
+  const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [passwordConfirm, setPasswordConfirm] = useState("")
@@ -26,16 +27,91 @@ export default function RegisterPage() {
   const { toast } = useToast()
   const router = useRouter()
 
+  // Function to format phone number by removing non-numeric characters
+  const formatPhoneNumber = (value: string) => {
+    return value.replace(/\D/g, "")
+  }
+
+  // Handle phone input change
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedPhone = formatPhoneNumber(e.target.value)
+    setPhone(formattedPhone)
+  }
+
+  // Handle password input change with real-time validation
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value
+    setPassword(newPassword)
+    // Debounced or on-blur validation might be better for UX than instant toast
+    // For now, keeping as is per original code, but consider UX impact.
+    if (newPassword.length > 0 && newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      })
+    }
+  }
+
   // Check if user is already logged in and redirect to dashboard
   useEffect(() => {
     if (user) {
-      router.push("/register/keywords")
+      router.push("/register/keywords") // Or wherever you want to redirect logged-in users
     }
   }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate inputs before constructing data
+    if (!name.trim()) {
+        toast({
+            title: "Full Name required",
+            description: "Please enter your full name.",
+            variant: "destructive",
+        });
+        return;
+    }
+    if (!username.trim()) {
+      toast({
+        title: "Username required",
+        description: "Please enter a username.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (!email.trim()) {
+        toast({
+            title: "Email required",
+            description: "Please enter an email address.",
+            variant: "destructive",
+        });
+        return;
+    }
+    if (!phone.trim()) {
+      toast({
+        title: "Phone number required",
+        description: "Please enter a phone number.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (!password.trim() || !passwordConfirm.trim()) {
+      toast({
+        title: "Password missing",
+        description: "Password and password confirmation cannot be blank.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (password.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      })
+      return
+    }
     if (password !== passwordConfirm) {
       toast({
         title: "Passwords don't match",
@@ -45,31 +121,80 @@ export default function RegisterPage() {
       return
     }
 
-    if (!username.trim()) {
-      toast({
-        title: "Username required",
-        description: "Please enter a username.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsLoading(true)
 
+    // This object is for logging or if you adapt the register function to take an object in the future.
+    const registrationPayloadForLogging = {
+      email,
+      username,
+      name,
+      phone,
+      isdanuser: isDanuser,
+      // Fields below are not directly passed to the current register function signature
+      // but are kept here for completeness if you intend to use them later.
+      emailVisibility: true,
+      location: { lon: 0, lat: 0 },
+      user_organization: [],
+      bio: "",
+      location_address: "",
+      email_notifications: true,
+      marketing_emails: true,
+      // For logging, it's generally not a good idea to log passwords directly.
+      // password: "******",
+      // passwordConfirm: "******",
+    }
+    console.log("Submitting registration data (payload for logging):", JSON.stringify(registrationPayloadForLogging, null, 2))
+
     try {
-      await register(email, password, passwordConfirm, name, username, isDanuser)
+      // Call register with individual arguments as expected by AuthContextType and AuthProvider implementation
+      await register(
+        email,
+        password,
+        passwordConfirm,
+        name,
+        username,
+        isDanuser,
+        phone
+      )
       toast({
         title: "Registration successful",
         description: "Your account has been created. Please select your interests.",
       })
-      // The auth provider should automatically update the user state,
-      // which will trigger the useEffect above to redirect to dashboard
+      // Redirection is handled within the `register` function in `auth-provider.tsx`
     } catch (error: any) {
-      toast({
-        title: "Registration failed",
-        description: error.message || "There was an error creating your account. Please try again.",
-        variant: "destructive",
-      })
+      console.error("Registration error in Page:", error)
+      // More specific error handling based on PocketBase error structure
+      let errorMessage = "There was an error creating your account. Please try again."
+      if (error?.data?.data?.email?.message) {
+        errorMessage = `Email: ${error.data.data.email.message}`;
+      } else if (error?.data?.data?.username?.message) {
+        errorMessage = `Username: ${error.data.data.username.message}`;
+      } else if (error?.data?.data?.password?.message) {
+        errorMessage = `Password: ${error.data.data.password.message}`;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+
+      if (errorMessage.toLowerCase().includes("email") && (errorMessage.toLowerCase().includes("exists") || errorMessage.toLowerCase().includes("taken") || errorMessage.toLowerCase().includes("used"))) {
+        toast({
+          title: "Email already used",
+          description: "This email is already registered. Please use a different email or sign in.",
+          variant: "destructive",
+        })
+      } else if (errorMessage.toLowerCase().includes("password") && errorMessage.toLowerCase().includes("cannot be blank")) {
+        toast({
+          title: "Password missing",
+          description: "Password and password confirmation cannot be blank. Please ensure they are provided.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Registration failed",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -78,15 +203,15 @@ export default function RegisterPage() {
   const handleGoogleRegister = async () => {
     setIsLoading(true)
     try {
-      await loginWithGoogle(isDanuser)
+      await loginWithGoogle(isDanuser) // Pass isDanuser status for Google registration
       toast({
         title: "Google registration successful",
         description: "Welcome to Danusin!",
       })
-      // The auth provider should automatically update the user state,
-      // which will trigger the useEffect above to redirect to dashboard
+      // Redirection is handled within loginWithGoogle
     } catch (error: any) {
-      const errorMsg = String(error?.message || error || "").toLowerCase()
+      console.error("Google registration error:", error)
+      const errorMsg = String(error?.message || JSON.stringify(error) || "").toLowerCase()
       const isCancellation =
         errorMsg.includes("cancel") ||
         errorMsg.includes("closed by user") ||
@@ -97,7 +222,7 @@ export default function RegisterPage() {
       if (!isCancellation) {
         toast({
           title: "Google registration failed",
-          description: "There was an error registering with Google. Please try again.",
+          description: error.message || "There was an error registering with Google. Please try again.",
           variant: "destructive",
         })
       }
@@ -107,6 +232,7 @@ export default function RegisterPage() {
   }
 
   // Don't render the form if user is already logged in (prevents flash of content)
+  // This also handles the case where isLoading is true during initial auth check
   if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
@@ -115,7 +241,7 @@ export default function RegisterPage() {
             <div className="flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-green-600" />
             </div>
-            <p className="text-center mt-4 text-muted-foreground">Redirecting to dashboard...</p>
+            <p className="text-center mt-4 text-muted-foreground">Redirecting...</p>
           </CardContent>
         </Card>
       </div>
@@ -131,7 +257,11 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline" className="w-full" onClick={handleGoogleRegister} disabled={isLoading}>
-            <FaGoogle className="mr-2" />
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FaGoogle className="mr-2" />
+            )}
             Sign up with Google
           </Button>
 
@@ -160,6 +290,17 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+1234567890"
+                value={phone}
+                onChange={handlePhoneChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -175,8 +316,9 @@ export default function RegisterPage() {
               <Input
                 id="password"
                 type="password"
+                placeholder="Must be at least 8 characters"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 required
               />
             </div>
@@ -185,6 +327,7 @@ export default function RegisterPage() {
               <Input
                 id="passwordConfirm"
                 type="password"
+                placeholder="Re-enter your password"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 required
