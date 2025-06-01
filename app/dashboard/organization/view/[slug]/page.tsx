@@ -78,7 +78,7 @@ function NewProductCard({
 
     const imageUrl = product.product_image && product.product_image.length > 0 && product.collectionId ? pb.getFileUrl(product, product.product_image[0], { thumb: '500x300' }) : "/placeholder.svg?height=300&width=500&text=" + encodeURIComponent(product.product_name.substring(0, 2).toUpperCase());
     const displayPrice = product.discount && product.discount > 0 && product.discount < product.price ? ( <><span className="line-through text-neutral-500 dark:text-zinc-500 font-normal text-[11px] sm:text-xs">Rp{product.price.toLocaleString('id-ID')}</span><span className="text-emerald-600 font-semibold"> Rp{product.discount.toLocaleString('id-ID')}</span></> ) : ( <span className="font-semibold">Rp{product.price.toLocaleString('id-ID')}</span> );
-    const productLink = `/dashboard/products/${product.slug || product.id}`;
+    const productLink = `/dashboard/products/${product.id}`;
     const organization = product.expand?.by_organization;
     const addedBy = product.expand?.added_by;
     const catalogs = product.expand?.catalog;
