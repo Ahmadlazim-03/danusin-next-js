@@ -79,7 +79,7 @@ export function UserCard() {
   }
 
   return (
-    <div className=" z-[900] animate-fade-in pointer-events-auto user-card mt-20">
+    <div className=" z-[900] animate-fade-in pointer-events-auto user-card mt-5">
       <Card className="w-96 shadow-lg max-h-[60vh] overflow-hidden flex flex-col">
         <CardHeader className="pb-2 flex flex-row items-start justify-between">
           <div>
