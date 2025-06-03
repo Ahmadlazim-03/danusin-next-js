@@ -163,7 +163,7 @@ export function LocationControls() {
   }
 
   return (
-    <Card className="w-96 shadow-lg location-controls z-[950]">
+    <Card className="w-96 shadow-lg location-controls z-[950] mt-5">
       <CardHeader className="pb-2 flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg flex items-center">
