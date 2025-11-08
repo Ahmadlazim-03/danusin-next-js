@@ -70,6 +70,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  // --- Cookie helpers for middleware compatibility ---
+  const setAuthCookie = () => {
+    try {
+      const token = pb.authStore.token
+      if (token) {
+        document.cookie = `auth=${token}; path=/; max-age=86400; SameSite=Lax`
+      }
+    } catch (e) {
+      console.warn("[AuthProvider] Failed to set auth cookie", e)
+    }
+  }
+  const clearAuthCookie = () => {
+    document.cookie = "auth=; path=/; max-age=0; SameSite=Lax"
+  }
+
   const processUserData = (userDataFromPb: any): User => {
     let avatarUrl = ""
     if (userDataFromPb.avatar && userDataFromPb.id && userDataFromPb.collectionId) {
@@ -125,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (pb.authStore.isValid && pb.authStore.model) {
       console.log("[AuthProvider] Initial auth check: Valid session found.", pb.authStore.model);
       setUser(processUserData(pb.authStore.model as any));
+      setAuthCookie();
     } else {
       console.log("[AuthProvider] Initial auth check: No valid session.");
       setUser(null);
@@ -135,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[AuthProvider] AuthStore changed. New model:", model);
       setUser(model ? processUserData(model as any) : null);
       setIsLoading(false); // Also update loading state on change
+      if (model) setAuthCookie(); else clearAuthCookie();
     }, true); // `true` to immediately invoke with current state
 
     return () => {
@@ -151,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const authData = await pb.collection("danusin_users").authWithPassword(email, password)
       setUser(processUserData(authData.record)) // authData.record contains the user model
       console.log("[AuthProvider] Login successful. User set:", authData.record.id)
+      setAuthCookie();
       router.push("/dashboard") // Or a more appropriate redirect location
     } catch (error) {
       console.error("[AuthProvider] Login error:", error)
@@ -217,7 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const updatedRecord = await pb.collection("danusin_users").update(authData.record.id, updateData);
         setUser(processUserData(updatedRecord));
         console.log("[AuthProvider] New Google user profile updated and set.");
-        router.push("/register/keywords"); // Redirect new users to keywords page
+        setAuthCookie();
+        // Permintaan user: langsung ke dashboard setelah register
+        router.push("/dashboard");
       } else {
         console.log("[AuthProvider] Existing user via Google. Refreshing data.");
         // For existing users, their record is already in authData.record
@@ -225,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const refreshedUser = await pb.collection("danusin_users").getOne(authData.record.id);
         setUser(processUserData(refreshedUser));
         console.log("[AuthProvider] Existing Google user data refreshed and set.");
+        setAuthCookie();
         router.push("/dashboard"); // Redirect existing users to dashboard
       }
     } catch (error: any) {
@@ -246,31 +267,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log(`[AuthProvider] Attempting registration for email: ${email}, username: ${username}, phone: ${phone}, isDanuser: ${isDanuserFlag}`);
       // Data to be sent to PocketBase for user creation.
       // Ensure field names match your 'danusin_users' collection schema exactly.
-      const userDataToCreate = {
-        email,
+      // Beberapa server PocketBase membatasi set kolom tertentu (mis: role/isdanuser) saat create publik.
+      // Jadi buat dulu minimal, baru update setelah autentikasi.
+      const userDataToCreate: Record<string, any> = {
+        email: email.trim().toLowerCase(),
         password,
         passwordConfirm,
-        name,
-        username,
-        isdanuser: isDanuserFlag, // Field name in PocketBase
-        phone,                   // Field name in PocketBase
-        // You can add other default fields here if your collection requires them
-        // and they are not automatically set by PocketBase (e.g., emailVisibility: true)
+        name: name.trim(),
+        username: username.trim().toLowerCase(),
+        phone: phone.trim(),
       };
 
-      await pb.collection("danusin_users").create(userDataToCreate);
+      let createResult;
+      try {
+        createResult = await pb.collection("danusin_users").create(userDataToCreate);
+      } catch (err: any) {
+        // Tangani error create lebih informatif
+        if (err?.response?.data) {
+          console.error("[AuthProvider] Create user field errors:", err.response.data);
+        }
+        throw err; // lempar ke catch luar
+      }
       console.log("[AuthProvider] Registration successful. Authenticating...");
       
       // After successful creation, authenticate the user
       const authData = await pb.collection("danusin_users").authWithPassword(email, password);
       setUser(processUserData(authData.record)); // authData.record has the user model
       console.log("[AuthProvider] Authentication after registration successful. User set.");
-      router.push("/register/keywords"); // Redirect to keywords page after registration
+      // Update kolom yang mungkin dibatasi saat create (mis: isdanuser)
+      try {
+        if (isDanuserFlag || phone || name) {
+          await pb.collection("danusin_users").update(authData.record.id, {
+            isdanuser: isDanuserFlag,
+            phone: phone.trim(),
+            name: name.trim(),
+          });
+        }
+      } catch (updateErr: any) {
+        console.warn("[AuthProvider] Post-auth update (optional fields) failed:", updateErr?.response?.data || updateErr);
+      }
+      setAuthCookie();
+      // Langsung ke dashboard sesuai permintaan
+      router.push("/dashboard");
     } catch (error: any) {
-      console.error("[AuthProvider] Registration error:", error?.data || error);
-      // PocketBase errors often have details in error.data.data
-      // Example: error.data.data.email.message
-      throw error; // Rethrow to be handled by the calling component (RegisterPage)
+      // ClientResponseError memiliki struktur: error.response = {code,message,data:{field:{code,message}}}
+      const raw = error?.response || error?.data || error;
+      console.error("[AuthProvider] Registration error (raw):", raw);
+      if (raw?.data) {
+        const fieldMessages = Object.entries(raw.data)
+          .map(([field, info]: any) => {
+            if (info?.message) return `${field}: ${info.message}`;
+            return null;
+          })
+          .filter(Boolean)
+          .join(" | ");
+        if (fieldMessages) {
+          throw new Error(fieldMessages);
+        }
+      }
+      // Fallback message
+      throw new Error(raw?.message || "Gagal membuat akun (unknown error)");
     }
   };
 
@@ -278,6 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("[AuthProvider] Logging out user.");
     pb.authStore.clear();
     setUser(null);
+    clearAuthCookie();
     router.push("/login"); // Redirect to login page after logout
   };
 

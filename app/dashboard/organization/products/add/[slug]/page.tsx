@@ -237,8 +237,10 @@ export default function CreateProductByOrgSlugPage() {
             id_product: newProduct.id,
         };
         await pb.collection("danusin_product_detail").create(detailPayload);
-        toast({ title: "Sukses", description: "Produk baru berhasil ditambahkan." });
-        router.push(`/dashboard/organization/settings/${organizationIdFromUrlSlug}?tab=products`); // Arahkan ke tab produk di halaman settings
+  toast({ title: "Sukses", description: "Produk baru berhasil ditambahkan." });
+  // Arahkan ke halaman detail organisasi dengan penanda sukses agar menampilkan alert di halaman tujuan
+  const qName = encodeURIComponent(formProductName || "");
+  router.push(`/dashboard/organization/view/${organizationIdFromUrlSlug}?added=1&product=${qName}`);
     } catch (error: any) {
         console.error("--- CREATE PRODUCT ERROR CATCH ---", error);
         let errorMessage = 'Gagal menambahkan produk. Coba lagi.';

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef, JSX } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { pb } from '@/lib/pocketbase'; // Pastikan path ini benar
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -339,6 +339,8 @@ function OrganizationMembersList({ organizationId, currentUserId }: { organizati
 export default function ViewOrganizationPage(): JSX.Element {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const { toast } = useToast();
     const { user: currentUser } = useAuth();
     const [organization, setOrganization] = useState<OrganizationViewData | null>(null);
@@ -503,6 +505,7 @@ export default function ViewOrganizationPage(): JSX.Element {
 
     return (
         <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 w-full">
+            <PostAddProductAlert />
             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6"> 
                 <Button variant="outline" size="icon" className="rounded-md flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10" onClick={() => router.back()} aria-label="Kembali ke Halaman Sebelumnya" > 
                     <span><ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /></span> 
@@ -589,4 +592,25 @@ export default function ViewOrganizationPage(): JSX.Element {
             </Tabs>
         </div>
     );
+}
+
+// Component to show success toast after adding a product (using query params added=1&product=...)
+function PostAddProductAlert() {
+    const { toast } = useToast();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    useEffect(() => {
+        const added = searchParams.get('added');
+        if (added === '1') {
+            const productName = searchParams.get('product');
+            toast({
+                title: 'Produk Ditambahkan',
+                description: productName ? `Produk "${productName}" berhasil ditambahkan ke organisasi.` : 'Produk baru berhasil ditambahkan.',
+            });
+            // Clean URL (remove query) to prevent repeated toast on internal navigations
+            router.replace(pathname);
+        }
+    }, [searchParams, toast, router, pathname]);
+    return null;
 }

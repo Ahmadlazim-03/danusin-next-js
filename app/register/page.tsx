@@ -118,20 +118,12 @@ export default function RegisterPage() {
       await register(email, password, passwordConfirm, name, username, isDanuser, phone)
       toast({
         title: "Registrasi Berhasil",
-        description: "Akun Anda telah dibuat. Silakan lanjutkan.",
+        description: "Akun Anda telah dibuat dan sedang diarahkan ke dashboard.",
       })
     } catch (error: any) {
-      console.error("Registration error in Page:", error)
-      let errorMessage = "Gagal membuat akun. Silakan coba lagi."
-      if (error?.data?.data?.email?.message) {
-        errorMessage = `Email: ${error.data.data.email.message}`
-      } else if (error?.data?.data?.username?.message) {
-        errorMessage = `Username: ${error.data.data.username.message}`
-      } else if (error?.data?.data?.password?.message) {
-        errorMessage = `Password: ${error.data.data.password.message}`
-      } else if (error?.message) {
-        errorMessage = error.message
-      }
+      // Sekarang register melempar Error dengan message gabungan field kalau ada
+      console.error("[RegisterPage] Registration error (caught):", error)
+      const errorMessage = error?.message || "Gagal membuat akun. Silakan coba lagi."
       toast({
         title: "Registrasi Gagal",
         description: errorMessage,

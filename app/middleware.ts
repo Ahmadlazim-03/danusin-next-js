@@ -8,7 +8,8 @@ export default function middleware(request: NextRequest) {
   const isDashboardPath = path.startsWith("/dashboard")
 
   // Get the authentication cookie
-  const authCookie = request.cookies.get("auth")?.value
+  // Accept custom auth cookie or PocketBase's default cookie if present
+  const authCookie = request.cookies.get("auth")?.value || request.cookies.get("pb_auth")?.value
 
   // If the path is a dashboard path and there's no auth cookie, redirect to login
   if (isDashboardPath && !authCookie) {
